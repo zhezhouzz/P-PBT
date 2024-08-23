@@ -1,11 +1,11 @@
 /* mantianed by the successed response of put/get/delete, must have larger sqr */
 spec SuccStateOfKey (key: tByteString) (sqr: int) (recordType: enum) (val: int) = {
   atom (respEq: eBrickGetResp | eBrickPutResp | eBrickDeleteResp) :: #key == key && #sqr == sqr && #recordType == recordType && #val == val && status == SUCCESS;
-  atom (respGT: eBrickGetResp | eBrickPutResp | eBrickDeleteResp) :: #key == key && #sqr > sqr && #recordType == recordType && #val == val && status == SUCCESS;
+  atom (respGT: eBrickGetResp | eBrickPutResp | eBrickDeleteResp) :: #key == key && #sqr > sqr && status == SUCCESS;
   regex (not (.* ~ respGt ~ .*)) && (.* ~ respEq ~ .*)
   }
 
-/* mantianed by the request of put/delete */
+/* mantianed by the request of put/delete; don't consider sqr and there is no status */
 spec PendingStateOfKey (key: tByteString) (sqr: int) (recordType: enum) (val: int) = {
   atom (respEq: eBrickPutReq | eBrickDeleteResp) :: #key == key && #sqr == sqr && #recordType == recordType && #val == val;
   atom (respOther: eBrickPutReq | eBrickDeleteResp) :: #key == key;
