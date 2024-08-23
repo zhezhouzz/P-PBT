@@ -13,7 +13,7 @@ enum tRecordType = {
 
 type tByteString = string
 
-(* Do we really need sqr/recordType/val for Delete/Put request ? *)
+/* Do we really need sqr/recordType/val for Delete/Put request ? */
 
 event {
   request eBrickGetReq (rId: int, key: tByteString, sqr: int, recordType: tRecordType, val: int)  ;

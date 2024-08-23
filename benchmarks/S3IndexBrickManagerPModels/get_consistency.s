@@ -1,11 +1,11 @@
-(* mantianed by the successed response of put/get/delete, must have larger sqr *)
+/* mantianed by the successed response of put/get/delete, must have larger sqr */
 spec SuccStateOfKey (key: tByteString) (sqr: int) (recordType: enum) (val: int) = {
   atom (respEq: eBrickGetResp | eBrickPutResp | eBrickDeleteResp) :: #key == key && #sqr == sqr && #recordType == recordType && #val == val && status == SUCCESS;
   atom (respGT: eBrickGetResp | eBrickPutResp | eBrickDeleteResp) :: #key == key && #sqr > sqr && #recordType == recordType && #val == val && status == SUCCESS;
   regex (not (.* ~ respGt ~ .*)) && (.* ~ respEq ~ .*)
   }
 
-(* mantianed by the request of put/delete *)
+/* mantianed by the request of put/delete */
 spec PendingStateOfKey (key: tByteString) (sqr: int) (recordType: enum) (val: int) = {
   atom (respEq: eBrickPutReq | eBrickDeleteResp) :: #key == key && #sqr == sqr && #recordType == recordType && #val == val;
   atom (respOther: eBrickPutReq | eBrickDeleteResp) :: #key == key;
@@ -22,7 +22,7 @@ spec SuccOrPendingStateWhenReq (rId: int) (key: tByteString) (sqr: int) (recordT
   regex ((SuccStateOfKey key sqr recordType val || PendingStateOfKey key sqr recordType val) ~ req ~ .*)
   }
 
-(* we don't check the mono of sqr for TOMBSTONE? *)
+/* we don't check the mono of sqr for TOMBSTONE? */
 spec GetConsistency1 (rId: int) (key: tByteString) (sqr: int) (recordType: enum) (val: int) = {
   atom (respWrong : eBrickGetResp) :: #key == key && #rId == rId && #sqr < sqr && not (#recordType == TOMBSTONE)
   regex not ((SuccStateWhenReq key sqr recordType val) ~ respWrong ~ .*);
