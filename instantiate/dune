@@ -1,0 +1,13 @@
+(library
+ (public_name automata_library.instantiate)
+ (name instantiate)
+ (wrapped true)
+ (libraries language desymbolic core prover)
+ (modules
+   instspec
+   instclient
+   ; typeinst
+   instantiate
+)
+ (preprocess (pps ppx_here))
+)

@@ -1,0 +1,37 @@
+; (env
+;  (dev
+;   (flags
+;    (:standard -w -32-35-27-33-26-64)))
+;  (release
+;   (flags
+;    (:standard -w -32-35-27-33-26-64))
+;   (ocamlopt_flags
+;    (:standard -unsafe -noassert -inline 100))))
+
+(library
+ (public_name automata_library.syntax)
+ (name syntax)
+ (wrapped true)
+ (modules
+   common
+   op
+   constant
+   lit
+   prop
+   sevent
+   ; finiteAutomata
+   regex
+   ; qregex
+   typectx
+   ; nfa
+   basicFA
+   finiteAutomata
+   minterm
+   item
+   inst
+   pmachine
+   syntax
+ )
+ (preprocess
+  (pps ppx_optcomp ppx_compare ppx_sexp_conv ppx_here))
+ (libraries core language_utils ast dtree backend))

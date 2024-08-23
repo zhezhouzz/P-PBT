@@ -1,0 +1,13 @@
+(env
+  (dev
+    (flags (:standard -w -32 -w -35 -w -27))))
+
+(library
+ (public_name automata_library.dtree)
+ (name dtree)
+ (libraries str bigarray language_utils)
+ (modules
+   FastDT
+   dt
+ )
+)

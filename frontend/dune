@@ -1,0 +1,26 @@
+(library
+ (public_name automata_library.front)
+ (name front)
+ (wrapped true)
+ (libraries syntax core)
+ (modules
+   common
+   ; aux
+   to_id
+   to_op
+   to_constant
+   to_lit
+   to_prop
+   to_sevent
+   ; to_strLabel
+   to_notation
+   to_regex
+   ; to_qregex
+   ; to_type_dec
+   ; to_inst
+   to_item
+   front
+ )
+ (preprocess (pps ppx_optcomp ppx_compare ppx_sexp_conv ppx_inline_test ppx_assert ppx_here))
+ (inline_tests)
+)

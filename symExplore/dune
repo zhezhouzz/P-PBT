@@ -1,0 +1,16 @@
+(library
+ (public_name automata_library.symExplore)
+ (name symExplore)
+ (wrapped true)
+ (libraries language core prover)
+ (modules
+   common
+   ; path
+   pathTree
+   ; explore
+   mexplore
+   simulation
+   symExplore
+)
+ (preprocess (pps ppx_here))
+)

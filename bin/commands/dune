@@ -1,0 +1,25 @@
+(library
+ (name commands)
+ (public_name automata_library.commands)
+ (libraries
+  core
+  core_unix.sys_unix
+  myconfig
+  language
+  ntypecheck
+  ptypecheck
+  desymbolic
+  dequantified
+  instantiate
+  frontSpec
+  frontFuncP
+  qcFA
+  symExplore
+  )
+ (modules
+  caux
+  ctest
+  cre)
+ (preprocess
+  (pps ppx_inline_test ppx_assert ppx_jane ppx_here))
+ (inline_tests))

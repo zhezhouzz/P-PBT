@@ -1,0 +1,19 @@
+(library
+ (public_name automata_library.dequantified)
+ (name dequantified)
+ (wrapped true)
+ (libraries language core)
+ (modules
+   register
+   pfa
+   pprop
+   qtype
+   world
+   cex
+   dequantified
+   pautomata
+   pclientInit
+   pover
+ )
+ (preprocess (pps ppx_here))
+)
