@@ -30,6 +30,7 @@
    item
    inst
    pmachine
+   wrapper
    syntax
  )
  (preprocess

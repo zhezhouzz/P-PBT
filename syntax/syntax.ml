@@ -15,6 +15,7 @@ include Inst
 include Minterm
 include FiniteAutomata
 include Backend
+include Wrapper
 include Ast
 
 let _tmp_dot_path = ".tmp.dot"

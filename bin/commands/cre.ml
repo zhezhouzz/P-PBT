@@ -323,7 +323,7 @@ let p_wrapper source_path () =
   let code =
     List.concat_map
       (fun file ->
-        let () = Printf.printf "parsing %s\n" file in
+        (* let () = Printf.printf "parsing %s\n" file in *)
         try FrontWrapper.parse file
         with Failure msg ->
           let () =
@@ -333,7 +333,7 @@ let p_wrapper source_path () =
           [])
       p_paths
   in
-  let () = Printf.printf "%s\n" (Backend.layout_p_wapper_decls code) in
+  (* let () = Printf.printf "%s\n" (Backend.layout_p_wapper_decls code) in *)
   let () =
     match !error_files with
     | [] -> ()
@@ -341,6 +341,30 @@ let p_wrapper source_path () =
         Pp.printf
           "@{<yellow>The following files cannot be parsed, are skipped:@}\n%s\n"
         @@ List.split_by "\n" (fun x -> x) l
+  in
+  let enames =
+    [
+      "eStartTxnReq";
+      "eStartTxnRsp";
+      "eReadReq";
+      "eReadRsp";
+      "tUpdateReq";
+      "eUpdateRsp";
+      "tCommitTxnReq";
+      "eCommitTxnRsp";
+      "tRollbackTxnReq";
+      "eMonitorRouterTxnStatus";
+      "eLeadShardCommitRsp";
+      "eShardCommitTxn";
+      "eShardAbortTxn";
+      "eShardPrepareRsp";
+      "eLeadShardCommitReq";
+      "eLeadShardCommitRsp";
+    ]
+  in
+  let _, code = simplify_wrapper code enames in
+  let () =
+    Printf.printf "Sinmpified\n%s\n" (Backend.layout_p_wapper_decls code)
   in
   ()
 

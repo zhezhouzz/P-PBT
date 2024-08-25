@@ -36,7 +36,8 @@ let layout_pnt_typed_var x =
 
 let layout_p_wapper_decl = function
   | WrapperEnum { enum_name; elems } ->
-      spf "enum %s {\n%s\n}" enum_name (List.split_by ",\n" (spf "\t%s") elems)
+      spf "enum %s {\n%s\n}" enum_name
+        (List.split_by ",\n" (spf "    %s") elems)
   | WrapperTypeAlias { type_name; alias_type } ->
       spf "type %s = %s;" type_name (layout_pnt alias_type)
   | WrapperEventDecl { event_name; event_type = Nt.Ty_record [] } ->
