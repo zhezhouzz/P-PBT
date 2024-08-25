@@ -16,7 +16,7 @@ let rec layout_pnt t =
         spf "(%s)" @@ List.split_by ", " aux ts
     | Ty_record l -> (
         match l with
-        | [] -> _failatwith __FILE__ __LINE__ "bad record"
+        | [] -> "" (* _failatwith __FILE__ __LINE__ "bad record" *)
         | (name, _) :: _ when String.equal name "0" ->
             let l = List.map snd l in
             spf "(%s)" @@ List.split_by ", " layout_pnt l
@@ -33,6 +33,25 @@ and layout_pnt_typed str x =
 let layout_pnt_typed_var x =
   (* let () = Printf.printf "print tvar %s\n" x.x in *)
   spf "%s: %s" x.x (layout_pnt x.ty)
+
+let layout_p_wapper_decl = function
+  | WrapperEnum { enum_name; elems } ->
+      spf "enum %s {\n%s\n}" enum_name (List.split_by ",\n" (spf "\t%s") elems)
+  | WrapperTypeAlias { type_name; alias_type } ->
+      spf "type %s = %s;" type_name (layout_pnt alias_type)
+  | WrapperEventDecl { event_name; event_type = Nt.Ty_record [] } ->
+      spf "event %s;" event_name
+  | WrapperEventDecl { event_name; event_type } ->
+      spf "event %s: %s;" event_name (layout_pnt event_type)
+  | WrapperMachineDecl { machine_name; _ } ->
+      spf "type %s = %s;" machine_name "machine"
+  | WrapperSpecEventDecl { event_name; spec_event_type; _ } ->
+      spf "event %s: %s;" event_name (layout_pnt spec_event_type)
+  | Dummy -> _die [%here]
+
+let layout_p_wapper_decls l =
+  let l = List.filter (function Dummy -> false | _ -> true) l in
+  List.split_by "\n" layout_p_wapper_decl l
 
 let layout_const = function
   | PBool b -> string_of_bool b

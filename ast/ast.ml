@@ -16,6 +16,7 @@ include Inst
 include Mtyped
 include Sugar
 include Pmachine
+include Wrapper
 
 (* include Abstract_type *)
 include Myconfig

@@ -13,6 +13,7 @@
   instantiate
   frontSpec
   frontFuncP
+  frontWrapper
   qcFA
   symExplore
   )

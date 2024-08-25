@@ -312,6 +312,38 @@ let read_sfa source_file () =
   (* let () = test_sfa1 code in *)
   ()
 
+let p_wrapper source_path () =
+  let p_paths =
+    List.filter (fun path ->
+        let postfix = List.last @@ String.split path ~on:'.' in
+        match postfix with "p" -> true | _ -> false)
+    @@ dir_contents source_path
+  in
+  let error_files = ref [] in
+  let code =
+    List.concat_map
+      (fun file ->
+        let () = Printf.printf "parsing %s\n" file in
+        try FrontWrapper.parse file
+        with Failure msg ->
+          let () =
+            Printf.printf "Cannot parse file %s, skip it.\n%s\n" file msg
+          in
+          let () = error_files := file :: !error_files in
+          [])
+      p_paths
+  in
+  let () = Printf.printf "%s\n" (Backend.layout_p_wapper_decls code) in
+  let () =
+    match !error_files with
+    | [] -> ()
+    | l ->
+        Pp.printf
+          "@{<yellow>The following files cannot be parsed, are skipped:@}\n%s\n"
+        @@ List.split_by "\n" (fun x -> x) l
+  in
+  ()
+
 let two_param message f =
   Command.basic ~summary:message
     Command.Let_syntax.(
@@ -348,10 +380,22 @@ let one_param message f =
       let () = Myconfig.meta_config_path := config_file in
       f source_file)
 
+let one_param_string message f =
+  Command.basic ~summary:message
+    Command.Let_syntax.(
+      let%map_open config_file =
+        flag "config"
+          (optional_with_default Myconfig.default_meta_config_path regular_file)
+          ~doc:"config file path"
+      and source_file = anon ("source_code_file" %: string) in
+      let () = Myconfig.meta_config_path := config_file in
+      f source_file)
+
 let cmds =
   [
     ("read-automata", one_param "read_automata" read_automata);
     ("read-sfa", one_param "read_sfa" read_sfa);
     ("read-p", one_param "read_p" read_p);
     ("read-p-sfa", three_param "read_p" read_p_and_spec);
+    ("read-p-wrapper", one_param_string "p-wrapper" p_wrapper);
   ]
