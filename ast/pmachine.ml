@@ -159,7 +159,11 @@ let mk_field record field =
           | "dest" -> mk_pid machine_local_server_decl
           | _ -> mk_p_this (* _die_with [%here] (spf "field: %s" field) *))
       | Some (_, ty) -> (PField { record; field }) #: ty)
-  | _ -> _die_with [%here] (spf "not a record type: %s" (Nt.layout record.ty))
+  | _ ->
+      _die_with [%here]
+        (spf "%s.%s has not a record type: %s"
+           (layout_sexp_p_expr record.x)
+           field (Nt.layout record.ty))
 
 let mk_p_send dest event_name payload =
   (PSend { dest; event_name; payload }) #: Nt.unit_ty

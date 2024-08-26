@@ -326,6 +326,30 @@ let read_sfa source_file () =
   (* let () = test_sfa1 code in *)
   ()
 
+let read_p_repo source_path () =
+  let p_paths =
+    List.filter (fun path ->
+        let postfix = List.last @@ String.split path ~on:'.' in
+        match postfix with "p" -> true | _ -> false)
+    @@ dir_contents source_path
+  in
+  let error_files = ref [] in
+  let code =
+    List.concat_map
+      (fun file ->
+        (* let () = Printf.printf "parsing %s\n" file in *)
+        try FrontWrapper.parse file
+        with Failure msg ->
+          let () =
+            Printf.printf "Cannot parse file %s, skip it.\n%s\n" file msg
+          in
+          let () = error_files := file :: !error_files in
+          [])
+      p_paths
+  in
+  let () = Printf.printf "%s\n" (Backend.layout_p_wapper_decls code) in
+  ()
+
 let p_wrapper source_path header_spec_file () =
   let p_paths =
     List.filter (fun path ->
@@ -347,7 +371,7 @@ let p_wrapper source_path header_spec_file () =
           [])
       p_paths
   in
-  (* let () = Printf.printf "%s\n" (Backend.layout_p_wapper_decls code) in *)
+  let () = Printf.printf "%s\n" (Backend.layout_p_wapper_decls code) in
   let () =
     match !error_files with
     | [] -> ()
@@ -434,4 +458,5 @@ let cmds =
     ("read-p", one_param "read_p" read_p);
     ("read-p-sfa", three_param "read_p" read_p_and_spec);
     ("read-p-wrapper", two_param_string "p-wrapper" p_wrapper);
+    ("read-p-repo", one_param_string "p-wrapper" read_p_repo);
   ]

@@ -184,8 +184,9 @@ let code_reduction env (code : p_wrapper list) =
   in
   (env, code)
 
-let match_field env p_event_type name =
+let match_field enum_names env p_event_type name =
   let rec aux ty =
+    (* let () = Printf.printf "match_field: %s\n" (Nt.layout ty) in *)
     match ty with
     | Nt.Ty_record l -> (
         match List.find_opt (fun (x, _) -> String.equal name x) l with
@@ -200,7 +201,9 @@ let match_field env p_event_type name =
                 | Some _ -> res)
               None l)
     | Nt.Ty_constructor (name, []) -> (
-        match StrMap.find_opt env name with Some ty -> aux ty | None -> None)
+        if List.exists (String.equal name) enum_names then None
+        else
+          match StrMap.find_opt env name with Some ty -> aux ty | None -> None)
     | _ -> None
   in
   match aux p_event_type with
@@ -217,20 +220,24 @@ type wrapper = {
   imp : Nt.t p_func;
 }
 
-(** We add a client filed *)
+(** We add a client and server filed *)
 let mk_event_to_p_event (x, p_x, l) =
   let client = "client" #: mk_p_machine_ty in
+  let server = machine_local_server_decl in
   let event = "sevent" #: x.ty in
   let pEvent = "pEvent" #: p_x.ty in
   let es =
     List.map
       (fun (x, path) ->
-        mk_p_assign (mk_event_access pEvent [ x ], mk_event_access event path))
+        (* let () = Printf.printf "%s = %s\n" x (StrList.to_string path) in *)
+        mk_p_assign (mk_event_access pEvent path, mk_event_access event [ x ]))
       l
   in
   let body = mk_p_seqs es (mk_return (mk_pid pEvent)) in
   let params =
-    match event.ty with Nt.Ty_record [] -> [ client ] | _ -> [ client; event ]
+    match event.ty with
+    | Nt.Ty_record [] -> [ client; server ]
+    | _ -> [ client; server; event ]
   in
   ( x.x,
     {
@@ -242,10 +249,16 @@ let mk_event_to_p_event (x, p_x, l) =
 let mk_p_event_to_event (x, p_x, l) =
   let event = "sevent" #: x.ty in
   let pEvent = "pEvent" #: p_x.ty in
+  (* let () = *)
+  (*   List.iter *)
+  (*     (fun (name, path) -> *)
+  (*       Printf.printf "%s = %s\n" name (StrList.to_string path)) *)
+  (*     l *)
+  (* in *)
   let es =
     List.map
       (fun (x, path) ->
-        mk_p_assign (mk_event_access event path, mk_event_access pEvent [ x ]))
+        mk_p_assign (mk_event_access event [ x ], mk_event_access pEvent path))
       l
   in
   let body = mk_p_seqs es (mk_return (mk_pid event)) in
@@ -256,7 +269,7 @@ let mk_p_event_to_event (x, p_x, l) =
       imp = Pmachine.mk_p_function_decl [ pEvent ] [ event ] body;
     } )
 
-let mk_wrapper env (event_name, p_event_name) =
+let mk_wrapper enum_names env (event_name, p_event_name) =
   (* let () = Printf.printf "%s\n" (StrList.to_string (StrMap.to_key_list env)) in *)
   let p_event_type =
     StrMap.find
@@ -270,7 +283,7 @@ let mk_wrapper env (event_name, p_event_name) =
   let fields =
     List.map
       (fun (x, _) ->
-        let path, _ = match_field env p_event_type x in
+        let path, _ = match_field enum_names env p_event_type x in
         (* let () = *)
         (*   _assert __FILE__ __LINE__ "check wrapper type match" (Nt.eq ty ty') *)
         (* in *)
@@ -287,6 +300,11 @@ let mk_wrapper env (event_name, p_event_name) =
   (event_name, p_event_name, fields)
 
 let mk_wrappers (_, env, code) =
+  let enum_names =
+    List.filter_map
+      (function WrapperEnum { enum_name; _ } -> Some enum_name | _ -> None)
+      code
+  in
   let wrappers =
     List.filter_map
       (function
@@ -296,7 +314,8 @@ let mk_wrappers (_, env, code) =
             let p_event_name =
               p_event_name #: (StrMap.find "die" env p_event_name)
             in
-            Some (event_kind, mk_wrapper env (event_name, p_event_name))
+            Some
+              (event_kind, mk_wrapper enum_names env (event_name, p_event_name))
         | _ -> None)
       code
   in
