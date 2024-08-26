@@ -1,40 +1,40 @@
 spec lastUpdate (id: tGid) (k: tKey) (v: tVal) {
-  atom (update: eUpdateRsp) :: #gid == id && #key == k && #val == v;
-  atom (otherUpdate: eUpdateRsp) :: #gid == id && #key == k;
+  atom (update: UpdateRsp) :: #gid == id && #key == k && #val == v;
+  atom (otherUpdate: UpdateRsp) :: #gid == id && #key == k;
   regex .* ~ update ~ (. \ otherUpdate)*;
   }
 
 spec readActive (id1: tGid) (k1: tKey) (v1: tVal) {
-  atom (wrongRead: eReadRsp) :: #gid == id1 && #key == k1 && not (#val == v1);
+  atom (wrongRead: ReadRsp) :: #gid == id1 && #key == k1 && not (#val == v1);
   regex not (.* ~ (lastUpdate id1 k1 v1) ~ wrongRead ~ .*);
   }
 
 spec axStartTxn (id: tGid) (k: tKey) (v: tVal) {
-  atom (req: eStartTxnReq) :: true;
-  atom (rsp: eStartTxnRsp) :: true;
+  atom (req: StartTxnReq) :: true;
+  atom (rsp: StartTxnRsp) :: true;
   regex (not ((. \ req)* ~ rsp ~ (.*)))
   }
 
 spec axReadReq (id: tGid) (k: tKey) (v: tVal) {
-  atom (req: eReadReq) :: #gid == id && #key == k;
-  atom (rsp: eReadRsp) :: #gid == id && #key == k;
+  atom (req: ReadReq) :: #gid == id && #key == k;
+  atom (rsp: ReadRsp) :: #gid == id && #key == k;
   regex not ((. \ req)* ~ rsp ~.*);
 }
 
 spec axUpdate (id: tGid) (k: tKey) (v: tVal) {
-  atom (req: eUpdateReq) :: #gid == id && #key == k && #val == v;
-  atom (rsp: eUpdateRsp) :: #gid == id && #key == k && #val == v;
+  atom (req: UpdateReq) :: #gid == id && #key == k && #val == v;
+  atom (rsp: UpdateRsp) :: #gid == id && #key == k && #val == v;
   regex not ((. \ req)* ~ rsp ~.*);
   }
 
 spec axProvenanceGid (id: tGid) (k: tKey) (v: tVal) {
-  atom (getid: eStartTxnRsp) :: #gid == id;
-  atom (useid: eReadReq | eUpdateReq) :: #gid == id ;
+  atom (getid: StartTxnRsp) :: #gid == id;
+  atom (useid: ReadReq | UpdateReq) :: #gid == id ;
   regex not ((. \ getid)* ~ useid ~.*);
   }
 
-generator Client {
-    scope = [eStartTxnReq, eStartTxnRsp, eReadReq, eReadRsp, eUpdateReq, eUpdateRsp];
+generator SynClient {
+    scope = [StartTxnReq, StartTxnRsp, ReadReq, ReadRsp, UpdateReq, UpdateRsp];
     axiom = [axStartTxn, axReadReq, axUpdate, axProvenanceGid];
     config = [tKey, tVal];
     violation = readActive;

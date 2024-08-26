@@ -13,7 +13,7 @@
    dequantified
    pautomata
    pclientInit
-   pover
+   ; pover
  )
  (preprocess (pps ppx_here))
 )

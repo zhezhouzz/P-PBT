@@ -40,8 +40,6 @@ type 't item =
   | MFieldAssign of { field : string; assignment : string }
   | MValDecl of (Nt.t, string) typed
   | MAbstractType of (concrete_type, string) typed
-  (* | MEnumDecl of (string * string list) *)
-  (* | MTyDeclSub of { type_name : string; super_ty : Nt.t } *)
   | MEventDecl of { ev : (Nt.t, string) typed; event_kind : event_kind }
   | MRegex of { name : (Nt.t, string) typed; automata : ('t, 't sevent) regex }
   | MClient of client_setting
@@ -89,6 +87,8 @@ let remove_server_field_record_type = function
   | _ -> Sugar._die [%here]
 
 type spec_tyctx = {
+  reqresp_ctx : string Typectx.ctx;
+  wrapper_ctx : ((Nt.t, string) typed * (Nt.t, string) typed) Typectx.ctx;
   abstract_tyctx : concrete_type Typectx.ctx;
   event_tyctx : (string * Nt.t) list Typectx.ctx;
   event_kindctx : event_kind Typectx.ctx;
@@ -96,6 +96,18 @@ type spec_tyctx = {
   tyctx : Nt.t Typectx.ctx;
   field_assignment : string Typectx.ctx;
 }
+
+let init_spec_tyctx =
+  {
+    reqresp_ctx = Typectx.emp;
+    wrapper_ctx = Typectx.emp;
+    abstract_tyctx = Typectx.emp;
+    event_tyctx = Typectx.emp;
+    event_kindctx = Typectx.emp;
+    regex_tyctx = Typectx.emp;
+    tyctx = Typectx.emp;
+    field_assignment = Typectx.emp;
+  }
 
 let mk_regex_func_type args =
   let argsty =

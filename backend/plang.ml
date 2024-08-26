@@ -48,6 +48,7 @@ let layout_p_wapper_decl = function
       spf "type %s = %s;" machine_name "machine"
   | WrapperSpecEventDecl { event_name; spec_event_type; _ } ->
       spf "event %s: %s;" event_name (layout_pnt spec_event_type)
+  | ReqResp _ -> ""
   | Dummy -> _die [%here]
 
 let layout_p_wapper_decls l =
@@ -257,7 +258,7 @@ let layout_p_machine ctx n { name; local_vars; local_funcs; states } =
   spf "%s%s%s%s%s" head local_vars_str states_str local_funcs_str last
 
 let layout_global_function ctx n (name, f) =
-  mk_indent_line n @@ spf "fun %s = %s" name.x (layout_p_func ctx n f)
+  mk_indent_line n @@ spf "fun %s %s" name.x (layout_p_func ctx n f)
 
 let p_primitive_types = [ "tTime" ]
 

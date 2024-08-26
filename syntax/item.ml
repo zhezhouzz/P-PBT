@@ -1,16 +1,6 @@
 open Ast
 open Zzdatatype.Datatype
 
-let init_spec_tyctx =
-  {
-    abstract_tyctx = emp;
-    event_tyctx = emp;
-    event_kindctx = emp;
-    tyctx = emp;
-    regex_tyctx = emp;
-    field_assignment = emp;
-  }
-
 let mk_spec_tyctx_one ctx = function
   | MFieldAssign { field; assignment } ->
       {
@@ -18,8 +8,15 @@ let mk_spec_tyctx_one ctx = function
         field_assignment = add_to_right ctx.field_assignment field #: assignment;
       }
   | MValDecl x -> { ctx with tyctx = add_to_right ctx.tyctx x }
-  | MAbstractType x ->
-      { ctx with abstract_tyctx = add_to_right ctx.abstract_tyctx x }
+  | MAbstractType x -> (
+      (* NOTE: only enum, int, bool, and alias type can be controlled by user. *)
+      match x.ty with
+      | CBaseType { superty = Nt.Ty_int; _ }
+      | CBaseType { superty = Nt.Ty_bool; _ }
+      | CBaseType { superty = Nt.Ty_constructor (_, []); _ }
+      | CEnumType _ ->
+          { ctx with abstract_tyctx = add_to_right ctx.abstract_tyctx x }
+      | _ -> ctx)
   | MEventDecl { ev; event_kind } -> (
       match ev.ty with
       | Nt.Ty_record l ->
@@ -33,7 +30,9 @@ let mk_spec_tyctx_one ctx = function
       { ctx with regex_tyctx = add_to_right ctx.regex_tyctx name }
   | MClient _ -> ctx
 
-let mk_spec_ctx code = List.fold_left mk_spec_tyctx_one init_spec_tyctx code
+let mk_spec_ctx (wrapper_ctx, reqresp_ctx) code =
+  let spec_ctx = List.fold_left mk_spec_tyctx_one init_spec_tyctx code in
+  { spec_ctx with wrapper_ctx; reqresp_ctx }
 
 let add_config_to_spec_tyctx ctx names =
   let abstract_tyctx =

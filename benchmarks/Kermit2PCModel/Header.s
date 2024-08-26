@@ -22,38 +22,28 @@ type tGid = int;
 type tKey = int;
 type tVal = int;
 
-event {
-  request eStartTxnReq: (client: machine);
-  response eStartTxnRsp: (router: machine, gid: tGid, start_time: tTime);
-}
+REQ eStartTxnReq;
+RSP eStartTxnRsp: (gid: tGid, start_time: tTime);
 
-event {
-  request eReadReq: (gid: tGid, key: tKey);
-  response eReadRsp: (router: machine, gid: tGid, key: tKey, val: tVal, status: tCmdStatus);
-}
+REQ eReadReq: (gid: tGid, key: tKey);
+RSP eReadRsp: (gid: tGid, key: tKey, val: tVal, status: tCmdStatus);
 
-event {
-  request tUpdateReq: (gid: tGid, key: tKey, val: tVal);
-  response eUpdateRsp: (router: machine, gid: tGid, key: tKey, val: tVal, status: tCmdStatus);
-}
+REQ tUpdateReq: (gid: tGid, key: tKey, val: tVal);
+RSP eUpdateRsp: (gid: tGid, key: tKey, val: tVal, status: tCmdStatus);
 
-event {
-  request tCommitTxnReq: (gid: tGid);
-  response eCommitTxnRsp: (gid: tGid, status: tTxnStatus);
-}
+REQ tCommitTxnReq: (gid: tGid);
+RSP eCommitTxnRsp: (gid: tGid, status: tTxnStatus);
 
-event {
-  request tRollbackTxnReq: (gid: tGid);
-}
+REQ tRollbackTxnReq: (gid: tGid);
 
 /* the client don't need to know the number of shard (assume there is only one), thus the shard field is omitted. */
-hidden eMonitorRouterTxnStatus: (gid: tGid, status: tTxnStatus, commit_time: tTime);
-hidden eLeadShardCommitRsp: (gid: tGid, commit_time: tTime); /* the status can only be COMMITTED */
-hidden eShardCommitTxn: (gid: tGid, commit_time: tTime);
-hidden eShardAbortTxn: (gid: tGid);
-hidden eShardPrepareRsp = (gid: tGid, status: tShardPrepareStatus, prepare_time: tTime)
-hidden eLeadShardCommitReq: (gid: tGid);
-hidden eLeadShardCommitRsp: (gid: tGid, status: tTxnStatus, commit_time: tTime) ;
+HIDDEN eMonitorRouterTxnStatus: (gid: tGid, status: tTxnStatus, commit_time: tTime);
+HIDDEN eLeadShardCommitRsp: (gid: tGid, commit_time: tTime); /* the status can only be COMMITTED */
+HIDDEN eShardCommitTxn: (gid: tGid, commit_time: tTime);
+HIDDEN eShardAbortTxn: (gid: tGid);
+HIDDEN eShardPrepareRsp = (gid: tGid, status: tShardPrepareStatus, prepare_time: tTime)
+HIDDEN eLeadShardCommitReq: (gid: tGid);
+HIDDEN eLeadShardCommitRsp: (gid: tGid, status: tTxnStatus, commit_time: tTime) ;
 
 
 /* can be an axiom */

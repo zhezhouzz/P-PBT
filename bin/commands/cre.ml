@@ -96,9 +96,23 @@ let get_typed_spec p_header_file spec_source_file =
   let predefined_code =
     read_source_file (Myconfig.get_prim_path ()).predefined_path ()
   in
-  let header_code = read_source_file p_header_file () in
+  let header_code = FrontWrapper.parse p_header_file in
+  (* let () = *)
+  (*   Printf.printf "Sinmpified\n%s\n" (Backend.layout_p_wapper_decls header_code) *)
+  (* in *)
+  let reqresp_ctx = code_to_reqresp_ctx header_code in
+  let env, simp_env, code = simplify_wrapper header_code header_code in
+  let tab = mk_wrappers (env, simp_env, header_code) in
+  let wrapper_ctx = tab_to_wrapper_ctx tab in
+  (* let () = *)
+  (*   Printf.printf "\n%s\n" (to_conversion_code (code, header_code, tab)) *)
+  (* in *)
+  (* let _ = _die [%here] in *)
+  let header = code_to_items header_code in
   let code = read_source_file spec_source_file () in
-  let spec_ctx = mk_spec_ctx (predefined_code @ header_code @ code) in
+  let spec_ctx =
+    mk_spec_ctx (wrapper_ctx, reqresp_ctx) (predefined_code @ header @ code)
+  in
   let code = struct_check spec_ctx code in
   (spec_ctx, code)
 
@@ -312,7 +326,7 @@ let read_sfa source_file () =
   (* let () = test_sfa1 code in *)
   ()
 
-let p_wrapper source_path () =
+let p_wrapper source_path header_spec_file () =
   let p_paths =
     List.filter (fun path ->
         let postfix = List.last @@ String.split path ~on:'.' in
@@ -342,30 +356,16 @@ let p_wrapper source_path () =
           "@{<yellow>The following files cannot be parsed, are skipped:@}\n%s\n"
         @@ List.split_by "\n" (fun x -> x) l
   in
-  let enames =
-    [
-      "eStartTxnReq";
-      "eStartTxnRsp";
-      "eReadReq";
-      "eReadRsp";
-      "tUpdateReq";
-      "eUpdateRsp";
-      "tCommitTxnReq";
-      "eCommitTxnRsp";
-      "tRollbackTxnReq";
-      "eMonitorRouterTxnStatus";
-      "eLeadShardCommitRsp";
-      "eShardCommitTxn";
-      "eShardAbortTxn";
-      "eShardPrepareRsp";
-      "eLeadShardCommitReq";
-      "eLeadShardCommitRsp";
-    ]
-  in
-  let _, code = simplify_wrapper code enames in
+  let header_spec = FrontWrapper.parse header_spec_file in
+  let env, simp_env, code = simplify_wrapper code header_spec in
+  (* let env, code = code_reduction env code in *)
+  let tab = mk_wrappers (env, simp_env, header_spec) in
   let () =
-    Printf.printf "Sinmpified\n%s\n" (Backend.layout_p_wapper_decls code)
+    Printf.printf "\n%s\n" (to_conversion_code (code, header_spec, tab))
   in
+  (* let () = *)
+  (*   Printf.printf "Sinmpified\n%s\n" (Backend.layout_p_wapper_decls code) *)
+  (* in *)
   ()
 
 let two_param message f =
@@ -415,11 +415,23 @@ let one_param_string message f =
       let () = Myconfig.meta_config_path := config_file in
       f source_file)
 
+let two_param_string message f =
+  Command.basic ~summary:message
+    Command.Let_syntax.(
+      let%map_open config_file =
+        flag "config"
+          (optional_with_default Myconfig.default_meta_config_path regular_file)
+          ~doc:"config file path"
+      and file1 = anon ("file1" %: string)
+      and source_file = anon ("source_code_file" %: regular_file) in
+      let () = Myconfig.meta_config_path := config_file in
+      f file1 source_file)
+
 let cmds =
   [
     ("read-automata", one_param "read_automata" read_automata);
     ("read-sfa", one_param "read_sfa" read_sfa);
     ("read-p", one_param "read_p" read_p);
     ("read-p-sfa", three_param "read_p" read_p_and_spec);
-    ("read-p-wrapper", one_param_string "p-wrapper" p_wrapper);
+    ("read-p-wrapper", two_param_string "p-wrapper" p_wrapper);
   ]

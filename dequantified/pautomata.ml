@@ -73,6 +73,7 @@ let machine_register_instantiation (cex, pfa) m =
     List.map (fun (op, (vs, _)) -> op #: (mk_p_record_ty vs))
     @@ StrMap.to_kv_list pfa.actions
   in
+  let ops = List.filter (fun x -> not (is_empty_record_ty x.ty)) ops in
   let instantiate_action_function_decls =
     List.map (mk_instantiate_action_function (cex, pfa)) ops
   in
@@ -120,9 +121,16 @@ let mk_instantiateres_decl pfa op =
 (** handle response *)
 
 let mk_handle_function (cex, pfa) op =
+  let real_op, f = _get_force [%here] pfa.spec_tyctx.wrapper_ctx op.x in
   let event = "input" #: op.ty in
-  let aux event_args =
-    let event_args_expr = List.map mk_pid event_args in
+  let real_input = "msg" #: real_op.ty in
+  if is_empty_record_ty real_op.ty then
+    let body = mk_p_goto loop_state_name in
+    ((Listen real_op.x) #: Nt.Ty_unit, mk_p_function_decl [] [] body)
+  else if is_empty_record_ty op.ty then
+    let body = mk_p_goto loop_state_name in
+    ((Listen real_op.x) #: Nt.Ty_unit, mk_p_function_decl [ real_input ] [] body)
+  else
     let res = mk_instantiateres_decl pfa op in
     let is_valid, result = mk_depair (mk_pid res) in
     let update_buffer =
@@ -134,10 +142,11 @@ let mk_handle_function (cex, pfa) op =
       | Some expr -> [ expr ]
     in
     let body =
-      mk_p_let res
-        (mk_p_app
-           (fst (mk_instantiate_action_function (cex, pfa) op))
-           event_args_expr)
+      mk_p_seq (mk_p_vassign (event, mk_p_app f [ mk_pid real_input ]))
+      @@ mk_p_let res
+           (mk_p_app
+              (fst (mk_instantiate_action_function (cex, pfa) op))
+              [ mk_pid event ])
       @@ mk_p_ite is_valid
            (mk_p_seq
               (mk_p_app
@@ -147,9 +156,8 @@ let mk_handle_function (cex, pfa) op =
       @@ Some mk_p_error
     in
     let body = mk_p_seqs update_buffer body in
-    ((Listen op.x) #: Nt.Ty_unit, mk_p_function_decl event_args [] body)
-  in
-  if is_empty_record_ty op.ty then aux [] else aux [ event ]
+    ( (Listen real_op.x) #: Nt.Ty_unit,
+      mk_p_function_decl [ real_input ] [ event ] body )
 
 (** mk_random_event *)
 
@@ -195,26 +203,45 @@ let loop_state_function_decl (cex, pfa) request_ops =
   let e1 = mk_p_it (mk_p_app cex.p_check_final_function []) mk_p_halt in
   let action = "action" #: (mk_p_abstract_ty "string") in
   let mk_request_f op =
-    let event = (spf "event_%s" op.x) #: op.ty in
-    let print_event = mk_p_printf (spf "event %s: {0}" op.x) [ mk_pid event ] in
-    let random_f = random_event_function_decl op in
-    let res = mk_instantiateres_decl pfa op in
-    let is_valid, result = mk_depair (mk_pid res) in
-    mk_p_it (mk_p_eq (mk_p_string op.x) (mk_pid action))
-    @@ mk_p_let event (mk_p_app random_f [])
-    @@ mk_p_seq print_event
-    @@ mk_p_let res
-         (mk_p_app
-            (fst (mk_instantiate_action_function (cex, pfa) op))
-            [ mk_pid event ])
-    @@ mk_p_seq
-         (mk_p_it is_valid
-         @@ mk_p_seq
-              (mk_p_app
-                 (fst (mk_realize_instantiated_action_function (cex, pfa) op))
-                 [ result ])
-              (mk_send op (mk_pid event)))
-    @@ mk_p_goto loop_state_name
+    if is_empty_record_ty op.ty then
+      let next_state =
+        mk_p_access
+          ( mk_p_access
+              ( mk_p_access
+                  ( mk_p_vaccess (pfa.p_transitions, mk_pid cex.p_global_idx),
+                    mk_pid cex.p_state ),
+                mk_p_string op.x ),
+            mk_p_int 0 )
+        (* NOTE: there is only one property. *)
+      in
+      let e = mk_p_vassign (cex.p_state, next_state) in
+      mk_p_it (mk_p_eq (mk_p_string op.x) (mk_pid action))
+      @@ mk_p_seqs
+           [ e; mk_send pfa.spec_tyctx.wrapper_ctx op None ]
+           (mk_p_goto loop_state_name)
+    else
+      let event = (spf "event_%s" op.x) #: op.ty in
+      let print_event =
+        mk_p_printf (spf "event %s: {0}" op.x) [ mk_pid event ]
+      in
+      let random_f = random_event_function_decl op in
+      let res = mk_instantiateres_decl pfa op in
+      let is_valid, result = mk_depair (mk_pid res) in
+      mk_p_it (mk_p_eq (mk_p_string op.x) (mk_pid action))
+      @@ mk_p_let event (mk_p_app random_f [])
+      @@ mk_p_seq print_event
+      @@ mk_p_let res
+           (mk_p_app
+              (fst (mk_instantiate_action_function (cex, pfa) op))
+              [ mk_pid event ])
+      @@ mk_p_seq
+           (mk_p_it is_valid
+           @@ mk_p_seq
+                (mk_p_app
+                   (fst (mk_realize_instantiated_action_function (cex, pfa) op))
+                   [ result ])
+                (mk_send pfa.spec_tyctx.wrapper_ctx op (Some (mk_pid event))))
+      @@ mk_p_goto loop_state_name
   in
   let request_es = List.map mk_request_f request_ops in
   let print_action = mk_p_printf "choose action: {0}" [ mk_pid action ] in
@@ -232,7 +259,7 @@ let mk_loop_state (cex, pfa) =
     List.map (fun (op, (vs, _)) -> op #: (mk_p_record_ty vs))
     @@ StrMap.to_kv_list pfa.actions
   in
-  let ops = List.filter (fun op -> not @@ is_empty_record_ty op.ty) ops in
+  (* let ops = List.filter (fun op -> not @@ is_empty_record_ty op.ty) ops in *)
   let request_ops, response_ops =
     List.partition
       (fun x ->
@@ -242,6 +269,11 @@ let mk_loop_state (cex, pfa) =
         | Hidden -> _die [%here])
       ops
   in
+  (* let () = *)
+  (*   Printf.printf "request_ops: %s\n" *)
+  (*   @@ List.split_by_comma layout_qv request_ops *)
+  (* in *)
+  (* let () = _die [%here] in *)
   let es = List.map (mk_handle_function (cex, pfa)) response_ops in
   loop_state_function_decl (cex, pfa) request_ops :: es
 
@@ -266,7 +298,12 @@ let mk_err_state pfa =
         | Hidden -> _die [%here])
       ops
   in
-  let es = List.map mk_err_handle_function response_ops in
+  let real_response_ops =
+    List.map
+      (fun op -> fst @@ _get_force [%here] pfa.spec_tyctx.wrapper_ctx op.x)
+      response_ops
+  in
+  let es = List.map mk_err_handle_function real_response_ops in
   es
 
 open Register

@@ -53,6 +53,10 @@ rule next_token = parse
   | "machine" {MACHINE}
   | "module" {MODULE}
   | "test" {TEST}
+  | "REQ" {REQ}
+  | "RSP" {RSP}
+  | "HIDDEN" {HIDDEN}
+  | "REQRSP" {REQRESP}
   (* arithmetic operators *)
   | "-" {MINUS}
   | "+" {PLUS}

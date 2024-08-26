@@ -7,7 +7,7 @@
 
 (* tokens *)
 (* keywords *)
-%token EOF TYPE ASSIGN FUN VAR EVENT IN ENUM MACHINE SPEC MODULE TEST
+%token EOF TYPE ASSIGN FUN VAR EVENT IN ENUM MACHINE SPEC MODULE TEST REQ RSP HIDDEN REQRESP
 (* arithmetic operators *)
 %token PLUS MINUS STAR DIV LT GT LE GE NEQ EQ MOD
 (* logic operators *)
@@ -119,13 +119,22 @@ indent_or_comma:
   | COMMA {()}
 ;
 
+spec_event:
+  | REQ event_name=IDENT ASSIGN p_event_name=IDENT COLON spec_event_type=nt {{y = mk_spec_event_decl (event_name, p_event_name) spec_event_type Req; loc = $startpos}}
+  | RSP event_name=IDENT ASSIGN p_event_name=IDENT COLON spec_event_type=nt {{y = mk_spec_event_decl (event_name, p_event_name) spec_event_type Resp; loc = $startpos}}
+  | HIDDEN event_name=IDENT ASSIGN p_event_name=IDENT COLON spec_event_type=nt {{y = mk_spec_event_decl (event_name, p_event_name) spec_event_type Hidden; loc = $startpos}}
+  | REQ event_name=IDENT ASSIGN p_event_name=IDENT {{y = mk_spec_event_decl (event_name, p_event_name) (Nt.Ty_record []) Req; loc = $startpos}}
+  | RSP event_name=IDENT ASSIGN p_event_name=IDENT {{y = mk_spec_event_decl (event_name, p_event_name) (Nt.Ty_record []) Resp; loc = $startpos}}
+  | HIDDEN event_name=IDENT ASSIGN p_event_name=IDENT {{y = mk_spec_event_decl (event_name, p_event_name) (Nt.Ty_record []) Hidden; loc = $startpos}}
+;
+
 statement:
   | ENUM enum_name=IDENT LBRACKET elems=enum_elem_list RBRACKET {{y = WrapperEnum {enum_name; elems}; loc = $startpos}}
   | TYPE type_name=IDENT SEMICOLON {{y = WrapperTypeAlias {type_name; alias_type = Nt.Ty_any} ; loc = $startpos}}
   | TYPE type_name=IDENT ASSIGN alias_type=nt SEMICOLON {{y = WrapperTypeAlias {type_name; alias_type} ; loc = $startpos}}
   | EVENT event_name=IDENT SEMICOLON {{y = WrapperEventDecl { event_name; event_type = Nt.Ty_record []}; loc = $startpos}}
   | EVENT event_name=IDENT COLON event_type=nt SEMICOLON {{y = WrapperEventDecl { event_name; event_type}; loc = $startpos}}
-  | EVENT event_name=IDENT ASSIGN p_event_name=IDENT COLON spec_event_type=nt {{y = mk_spec_event_decl (event_name, p_event_name) spec_event_type; loc = $startpos}}
+  | spec_event=spec_event SEMICOLON {spec_event}
   | MACHINE id=IDENT LBRACKET any* RBRACKET {{y = mk_machine_decl id; loc = $startpos}}
   | FUN IDENT func_type_decl LBRACKET any* RBRACKET {{y = Dummy; loc = $startpos}}
     (* FFI *)
@@ -135,6 +144,7 @@ statement:
     | TEST any_without_semi* SEMICOLON {{y = Dummy; loc = $startpos}}
     (* SEND RECEIVE *)
     | MACHINE id=IDENT indent_or_comma+ SEMICOLON indent_or_comma+ SEMICOLON LBRACKET any* RBRACKET {{y = mk_machine_decl id; loc = $startpos}}
+  | REQRESP req=IDENT resp=IDENT SEMICOLON {{y = ReqResp {req; resp}; loc = $startpos}}
   ;
 
 statement_list:
