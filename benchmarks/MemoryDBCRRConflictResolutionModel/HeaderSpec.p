@@ -25,10 +25,10 @@ type tVal = int;
 type tKey = int;
 type tSeqNbr = int;
 type Value = (seqNbr: int, val: tVal, valueType: ValueType);
-type tCommand = (commandType: CommandType, key: tKey, value: Value);
+type tCommand = (commandType: CommandType, key: string, val: any);
 type tClientReq = (client: machine, nodeId: int, command: tCommand);
 event eClientReq: tClientReq;
-type tExecutionResult = (executionResult: tStatus, value: Value, seqNbr: int, shouldPersistToLocalJournal: bool, shouldPropagateToRemotePrimaries: bool, shouldPropagateDeleteForCreateCreate: bool, delPropagateSeqNbrForCreateCreate: int, shouldRepropagateDelete: bool, delSeqNbr: int, commandsList: seq[tCommand]);
+type tExecutionResult = (executionResult: tStatus, val: any, seqNbr: int, shouldPersistToLocalJournal: bool, shouldPropagateToRemotePrimaries: bool, shouldPropagateDeleteForCreateCreate: bool, delPropagateSeqNbrForCreateCreate: int, shouldRepropagateDelete: bool, delSeqNbr: int, commandsList: seq[tCommand]);
 event eClientResp: tExecutionResult;
 
 type tUpdateKeyValueTimestamp = (nodeId: int, key: tKey, value: Value);

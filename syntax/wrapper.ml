@@ -1,8 +1,12 @@
+let p_prim_types = [ "machine"; "any"; "string" ]
+
 let rec is_p_prim_type = function
   | Nt.Ty_bool | Nt.Ty_int -> true
   | Nt.Ty_record l -> List.for_all (fun (_, ty) -> is_p_prim_type ty) l
   | Nt.Ty_tuple l -> List.for_all is_p_prim_type l
-  | Nt.Ty_constructor (name, []) when String.equal name "machine" -> true
+  | Nt.Ty_constructor (name, [])
+    when List.exists (String.equal name) p_prim_types ->
+      true
   | Nt.Ty_constructor (name, [ nt ]) ->
       (String.equal "set" name || String.equal "req" name) && is_p_prim_type nt
   | Nt.Ty_constructor (name, [ nt1; nt2 ]) ->
@@ -17,7 +21,9 @@ let get_absty nt =
     | Nt.Ty_bool | Nt.Ty_int -> []
     | Nt.Ty_record l -> List.concat_map (fun (_, ty) -> aux ty) l
     | Nt.Ty_tuple l -> List.concat_map aux l
-    | Nt.Ty_constructor (name, []) when String.equal name "machine" -> []
+    | Nt.Ty_constructor (name, [])
+      when List.exists (String.equal name) p_prim_types ->
+        []
     | Nt.Ty_constructor (name, []) -> [ name ]
     | Nt.Ty_constructor (_, [ nt ]) -> aux nt
     | Nt.Ty_constructor (_, [ nt1; nt2 ]) -> aux nt1 @ aux nt2

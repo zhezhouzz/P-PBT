@@ -2,6 +2,18 @@ fun set_is_empty(s: set[any]): bool {
   return 0 == sizeof(s);
 }
 
+fun set_machine_to_seq (s: set[any]): seq[any] {
+  var elem: any;
+  var res: seq[any];
+  var i: int;
+  i = 0;
+  foreach (elem in s) {
+    res += (i, elem);
+    i = i + 1;
+  }
+  return res;
+}
+
 fun intersection (s1: set[string], s2: seq[string]): set[string] {
   var res: set[string];
   var elem: string;

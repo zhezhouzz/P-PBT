@@ -39,7 +39,7 @@ spec ax3 (nodeId1: tId) (nodeId2: tId) (key1: tKey) (seqNbr1: tSeqNbr) (valueTyp
 generator SynClient {
   scope = [ClientReq, UpdateKeyValueTimestamp, ClientResp];
   axiom = [ax1, ax2, ax3];
-  config = [tKey, tVal];
+  config = [tId, tKey, tVal];
   violation = EventualConsistencyInvariant;
   step = 6;
 }

@@ -85,7 +85,7 @@ let p_response_actions_domain =
 let lib_set_is_empty = "set_is_empty" #: Nt.Ty_bool
 let lib_intersection_set = "intersection_set" #: (mk_p_set_ty mk_p_string_ty)
 let lib_set_union = "int_set_union" #: (mk_p_set_ty Nt.Ty_int)
-let server_domain_decl = "server_domain" #: (mk_p_set_ty mk_p_machine_ty)
+let server_domain_decl = "server_domain" #: (mk_p_seq_ty mk_p_machine_ty)
 
 (* let machine_local_server_decl = "local_server" #: mk_p_machine_ty *)
 let qtype_init_function_decl = "qtype_init" #: Nt.Ty_unit
@@ -228,7 +228,8 @@ let mk_set_intersection e1 e2 =
 
 let mk_p_choose pexpr =
   match pexpr.ty with
-  | Nt.Ty_constructor ("set", [ nt ]) ->
+  | Nt.Ty_constructor (name, [ nt ])
+    when String.equal name "set" || String.equal name "seq" ->
       let pfunc = "choose" #: (Nt.mk_arr pexpr.ty nt) in
       mk_p_app pfunc [ pexpr ]
   | Nt.Ty_int ->
