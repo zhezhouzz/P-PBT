@@ -106,13 +106,27 @@ let print_qstrsfa (prop, sfa) =
   (* in *)
   ()
 
-let print_qsfa (prop, sfa) =
+let print_transsfa (prop, sfa) =
   let () = Printf.printf "World Prop: %s\n" (layout_prop prop) in
   let () = Printf.printf "%s\n" (SFA.layout_dfa sfa) in
   (* let () = *)
   (*   Printf.printf "%i is mem of dfa?: %b\n" 6 (StateMap.mem 6 sfa.SFA.next) *)
   (* in *)
   (* let _ = SFA.display_dfa sfa in *)
+  (* let _ = StrAutomata.display_dfa @@ symbolic_dfa_to_event_name_dfa sfa in *)
+  (* let () = *)
+  (*   Printf.printf "%i is mem of dfa?: %b\n" 6 *)
+  (*     (StateMap.mem 6 (symbolic_dfa_to_event_name_dfa sfa).next) *)
+  (* in *)
+  ()
+
+let print_qsfa (prop, sfa) =
+  let () = Printf.printf "World Prop: %s\n" (layout_prop prop) in
+  (* let () = Printf.printf "%s\n" (SFA.layout_dfa sfa) in *)
+  (* let () = *)
+  (*   Printf.printf "%i is mem of dfa?: %b\n" 6 (StateMap.mem 6 sfa.SFA.next) *)
+  (* in *)
+  let _ = SFA.display_dfa sfa in
   (* let _ = StrAutomata.display_dfa @@ symbolic_dfa_to_event_name_dfa sfa in *)
   (* let () = *)
   (*   Printf.printf "%i is mem of dfa?: %b\n" 6 *)
@@ -235,6 +249,14 @@ let print_sfa_client_violation client =
   in
   let () = Printf.printf "%s\n" (layout_world client.violation_world) in
   let () = List.iter print_qsfa client.violation in
+  ()
+
+let print_transsfa_client_violation client =
+  let () =
+    Printf.printf "Client %s\n%s\n" client.client_name (layout_basic_ctx client)
+  in
+  let () = Printf.printf "%s\n" (layout_world client.violation_world) in
+  let () = List.iter print_transsfa client.violation in
   ()
 
 let print_sfa_client client =

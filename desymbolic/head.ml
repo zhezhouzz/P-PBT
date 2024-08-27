@@ -34,11 +34,11 @@ let dummy =
       [ (AVar "seqNbr" #: t) #: t; (AVar "id1" #: t) #: t ] )
 
 let litlist_to_tab (vs, l) =
-  let l =
-    if List.exists (fun x -> Nt.eq x.ty (mk_p_abstract_ty "tSeqNbr")) vs then
-      dummy :: l
-    else l
-  in
+  (* let l = *)
+  (*   if List.exists (fun x -> Nt.eq x.ty (mk_p_abstract_ty "tSeqNbr")) vs then *)
+  (*     dummy :: l *)
+  (*   else l *)
+  (* in *)
   let l = List.slow_rm_dup eq_lit l in
   (vs, Array.of_list l)
 

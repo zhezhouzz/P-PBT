@@ -125,7 +125,7 @@ let read_p_and_spec p_header_file spec_source_file output_file () =
     List.map (fun x ->
         let client = x.ty in
         let () = Printf.printf "original:\n" in
-        let () = Instantiate.print_strsfa_client client in
+        let () = Instantiate.print_transsfa_client_violation client in
         let () =
           Printf.printf
             "add counting properties: e.g., number of request is greater than \
@@ -134,15 +134,14 @@ let read_p_and_spec p_header_file spec_source_file output_file () =
         let client = SymExplore.test__dfa_with_bound client in
         let () = Printf.printf "explored:\n" in
         let () = Instantiate.print_strsfa_client_violation client in
-        let client = SymExplore.refine_client client in
-        let () = Printf.printf "refined:\n" in
-        let () = Instantiate.print_strsfa_client_violation client in
-        (* let () = Instantiate.print_sfa_client_violation client in *)
-        (* let () = _die [%here] in *)
+        (* let () = Instantiate.print_transsfa_client_violation client in *)
+        (* let client = SymExplore.refine_client client in *)
+        (* let () = Printf.printf "refined:\n" in *)
+        (* let () = Instantiate.print_transsfa_client_violation client in *)
         let client = SymExplore.rule_out_hidden client in
         let () = Printf.printf "filtered:\n" in
         let () = Instantiate.print_strsfa_client_violation client in
-        (* let () = Instantiate.print_sfa_client_violation client in *)
+        let () = Instantiate.print_transsfa_client_violation client in
         (* let () = _die [%here] in *)
         client)
     @@ ctx_to_list client_ctx

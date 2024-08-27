@@ -128,7 +128,7 @@ let expand_dfa_with_bound (dfa : dfa) rules bound =
   in
   let start = aux bound (init_resource_ctx rules) 0 in
   match start with
-  | None -> _die_with [%here] "no reachable path"
+  | None -> None
   | Some start ->
       (* let finals = *)
       (*   List.filter (fun n -> StateSet.mem (Hashtbl.find node_map n) dfa.finals) *)
@@ -144,23 +144,27 @@ let expand_dfa_with_bound (dfa : dfa) rules bound =
         Printf.printf "shrink transitions: %i -> %i\n" (num_transition_dfa res)
           (num_transition_dfa res')
       in
-      res'
+      Some res'
 
 let test__dfa_with_bound client =
   let rules =
-    [
-      ("eStartTxnReq", "eStartTxnRsp");
-      ("eReadReq", "eReadRsp");
-      ("eUpdateReq", "eUpdateRsp");
-      ("eClientReq", "eClientResp");
-      ("eClientReq", "eKVTime");
-    ]
+    List.map (fun x -> (x.x, x.ty)) @@ ctx_to_list client.spec_tyctx.reqresp_ctx
   in
+  (* let rules = *)
+  (*   [ *)
+  (*     ("eStartTxnReq", "eStartTxnRsp"); *)
+  (*     ("eReadReq", "eReadRsp"); *)
+  (*     ("eUpdateReq", "eUpdateRsp"); *)
+  (*     ("eClientReq", "eClientResp"); *)
+  (*     ("eClientReq", "eKVTime"); *)
+  (*   ] *)
+  (* in *)
   let violation =
-    List.map
+    List.filter_map
       (fun (prop, dfa) ->
-        let dfa = expand_dfa_with_bound dfa rules client.step_bound in
-        (prop, SFA.normalize_dfa dfa))
+        let* dfa = expand_dfa_with_bound dfa rules client.step_bound in
+        let dfa = SFA.normalize_dfa dfa in
+        Some (prop, dfa))
       client.violation
   in
   { client with violation }

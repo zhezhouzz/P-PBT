@@ -92,6 +92,10 @@ let bi_regex_check (label_check : spec_tyctx -> 'a -> 'b) (ctx : spec_tyctx)
               in
               _failatwith __FILE__ __LINE__ "wrong application"
         in
+        (* let () = *)
+        (*   Printf.printf "%s\n" *)
+        (*     (layout_symbolic_regex (RExpr (RApp { func; arg }))) *)
+        (* in *)
         let arg = bi_expr_check ctx arg in
         let _ = Nt._type_unify __FILE__ __LINE__ arg.ty argty in
         (RApp { func = f.x; arg = arg.x }) #: resty

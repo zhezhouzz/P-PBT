@@ -26,16 +26,9 @@ let layout = pprint
 let tpEventRaw str = spf "<%s>" str
 
 let pprintRaw = function
-  | GuardEvent { vs; phi } ->
-      tpEventRaw
-      @@ spf "%s | %s"
-           (List.split_by " " (fun x -> x.x) vs)
-           (layout_propRaw phi)
-  | EffEvent { op; vs; phi } ->
-      tpEventRaw
-      @@ spf "%s %s | %s" op
-           (List.split_by " " (fun x -> x.x) vs)
-           (layout_propRaw phi)
+  | GuardEvent { phi; _ } -> tpEventRaw @@ spf "%s" (layout_propRaw phi)
+  | EffEvent { op; phi; _ } ->
+      tpEventRaw @@ spf "%s | %s" op (layout_propRaw phi)
 
 let get_opopt expr =
   match To_op.string_to_op_opt (get_denote expr) with
