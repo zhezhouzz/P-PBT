@@ -222,8 +222,8 @@ type wrapper = {
 
 (** We add a client and server filed *)
 let mk_event_to_p_event (x, p_x, l) =
+  let servers = server_domain_decl in
   let client = "client" #: mk_p_machine_ty in
-  let server = machine_local_server_decl in
   let event = "sevent" #: x.ty in
   let pEvent = "pEvent" #: p_x.ty in
   let es =
@@ -233,11 +233,14 @@ let mk_event_to_p_event (x, p_x, l) =
         mk_p_assign (mk_event_access pEvent path, mk_event_access event [ x ]))
       l
   in
-  let body = mk_p_seqs es (mk_return (mk_pid pEvent)) in
+  let body =
+    mk_p_seqs es
+      (mk_p_send (mk_p_choose (mk_pid servers)) p_x.x (mk_pid pEvent))
+  in
   let params =
     match event.ty with
-    | Nt.Ty_record [] -> [ client; server ]
-    | _ -> [ client; server; event ]
+    | Nt.Ty_record [] -> [ client; servers ]
+    | _ -> [ client; servers; event ]
   in
   ( x.x,
     {

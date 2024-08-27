@@ -47,6 +47,7 @@ let mk_p_abstract_ty name = Nt.Ty_constructor (name, [])
 let mk_p_set_ty ty = Nt.Ty_constructor ("set", [ ty ])
 let mk_p_seq_ty ty = Nt.Ty_constructor ("seq", [ ty ])
 let mk_p_map_ty ty1 ty2 = Nt.Ty_constructor ("map", [ ty1; ty2 ])
+let mk_p_event_ty = mk_p_abstract_ty "event"
 let mk_p_ref_ty ty = Nt.Ty_constructor ("ref", [ ty ])
 let mk_p_record_ty vs = Nt.Ty_record (List.map (fun x -> (x.x, x.ty)) vs)
 let mk_p_string_ty = mk_p_abstract_ty "string"

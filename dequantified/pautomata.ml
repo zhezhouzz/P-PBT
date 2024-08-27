@@ -163,8 +163,8 @@ let mk_handle_function (cex, pfa) op =
 
 let mk_random_event_field ctx op (x, ty) =
   match get_opt ctx.field_assignment (deparse_field op.x x) with
-  | Some "self" -> (x, mk_p_self)
-  | Some "server" -> (x, mk_pid machine_local_server_decl)
+  (* | Some "self" -> (x, mk_p_self) *)
+  (* | Some "server" -> (x, mk_pid machine_local_server_decl) *)
   | Some _ -> _die_with [%here] "unknown assignment"
   | None -> (x, Qtype.qtype_choose_expr ty)
 

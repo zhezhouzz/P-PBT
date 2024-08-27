@@ -86,7 +86,8 @@ let lib_set_is_empty = "set_is_empty" #: Nt.Ty_bool
 let lib_intersection_set = "intersection_set" #: (mk_p_set_ty mk_p_string_ty)
 let lib_set_union = "int_set_union" #: (mk_p_set_ty Nt.Ty_int)
 let server_domain_decl = "server_domain" #: (mk_p_set_ty mk_p_machine_ty)
-let machine_local_server_decl = "local_server" #: mk_p_machine_ty
+
+(* let machine_local_server_decl = "local_server" #: mk_p_machine_ty *)
 let qtype_init_function_decl = "qtype_init" #: Nt.Ty_unit
 let state_decl = "state" #: Nt.Ty_int
 let gprop_id_decl = "gprop_id" #: Nt.Ty_int
@@ -153,11 +154,7 @@ let mk_field record field =
   match record.ty with
   | Nt.Ty_record l -> (
       match List.find_opt (fun (name, _) -> String.equal name field) l with
-      | None -> (
-          (* HACK: use local server machine or this *)
-          match field with
-          | "dest" -> mk_pid machine_local_server_decl
-          | _ -> mk_p_this (* _die_with [%here] (spf "field: %s" field) *))
+      | None -> _die [%here]
       | Some (_, ty) -> (PField { record; field }) #: ty)
   | _ ->
       _die_with [%here]

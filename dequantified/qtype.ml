@@ -87,7 +87,7 @@ let mk_qtype_init_input ctx =
       (ctx_to_list ctx.abstract_tyctx)
   in
   let vs = List.map (qtype_domain_declear ctx) qtypes in
-  let vs = machine_local_server_decl :: vs in
+  let vs = server_domain_decl :: vs in
   let input = "input" #: (mk_p_record_ty vs) in
   (vs, input)
 
@@ -188,8 +188,7 @@ let machine_register_qtypes client { name; local_vars; local_funcs; states } =
   in
   {
     name;
-    local_vars =
-      local_vars @ (machine_local_server_decl :: declears) @ buffer_declears;
+    local_vars = local_vars @ (server_domain_decl :: declears) @ buffer_declears;
     local_funcs =
       local_funcs
       @ [ mk_qtype_init_function_decl client.spec_tyctx ]

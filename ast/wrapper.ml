@@ -20,3 +20,11 @@ let mk_spec_event_decl (event_name, p_event_name) spec_event_type event_kind =
 let mk_machine_decl machine_name =
   WrapperMachineDecl
     { machine_name; machine_type = Nt.Ty_constructor ("machine", []) }
+
+let is_spec = function WrapperSpecEventDecl _ | ReqResp _ -> true | _ -> false
+
+let is_p_type_event = function
+  | WrapperEnum _ | WrapperTypeAlias _ | WrapperEventDecl _
+  | WrapperMachineDecl _ ->
+      true
+  | _ -> false

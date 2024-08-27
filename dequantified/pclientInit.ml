@@ -58,14 +58,12 @@ let mk_validate_function pfa op size =
 
 (** send *)
 
-let mk_send wrapper_ctx op event =
-  let real_op, f = _get_force [%here] wrapper_ctx op.x in
-  let dest = mk_pid machine_local_server_decl in
-  match event with
-  | None ->
-      mk_p_send dest real_op.x
-        (mk_p_app f [ mk_p_this; mk_pid machine_local_server_decl ])
-  | Some event ->
+let mk_send wrapper_ctx op payload =
+  let _, f = _get_force [%here] wrapper_ctx op.x in
+  let dest = mk_pid server_domain_decl in
+  match payload with
+  | None -> mk_p_app f [ mk_p_this; dest ]
+  | Some payload ->
       (* let l = *)
       (*   match remove_server_field_record_type op.ty with *)
       (*   | Nt.Ty_record l -> l *)
@@ -75,8 +73,7 @@ let mk_send wrapper_ctx op event =
       (* let payload = *)
       (*   mk_p_record @@ List.map (fun (name, _) -> (name, mk_field event name)) l *)
       (* in *)
-      mk_p_send dest real_op.x
-        (mk_p_app f [ mk_p_this; mk_pid machine_local_server_decl; event ])
+      mk_p_app f [ mk_p_this; dest; payload ]
 
 let action_domain_expr = mk_pid action_domain_declar
 
