@@ -16,7 +16,7 @@ def mk_spec_path(name, specname):
     return mk_local_path(name) + "/" + specname + ".p"
 
 def mk_output_path(pname):
-    return p_repo + "/" + pname + "/Syn/SynClient.p"
+    return p_repo + "/" + pname + "/PSyn/SynClient.p"
 
 verbose = False
 
@@ -25,10 +25,10 @@ cmd_prefix = ["dune", "exec", "--", "bin/main.exe"]
 def invoc_cmd(cmd, cwd=None):
     if (verbose):
         print(" ".join(cmd))
-    # try:
-    #     subprocess.run(cmd, cwd=cwd)
-    # except subprocess.CalledProcessError as e:
-    #     print(e.output)
+    try:
+        subprocess.run(cmd, cwd=cwd)
+    except subprocess.CalledProcessError as e:
+        print(e.output)
 
 def do_syn(option, name, specname):
     pname = ""

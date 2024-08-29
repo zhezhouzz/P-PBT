@@ -36,11 +36,14 @@ spec ax3 (nodeId1: tId) (nodeId2: tId) (key1: tKey) (seqNbr1: tSeqNbr) (valueTyp
   regex (a ~ b ~ c)* || ((a ~ b ~ c)* ~ a) || ((a ~ b ~ c)* ~ a ~ b)
 }
 
-generator SynClient {
-  scope = [ClientReq, UpdateKeyValueTimestamp, ClientResp];
-  axiom = [ax1, ax2, ax3];
-  config = [tId, tKey, tVal];
-  violation = EventualConsistencyInvariant;
-  step = 6;
+spec dummy (nodeId1: tId) (nodeId2: tId) (key1: tKey) (seqNbr1: tSeqNbr) (valueType1: ValueType) (val1: tVal)  {
+  regex . ~ . ~ . ~ .
 }
 
+generator SynClient {
+  scope = [ClientReq, UpdateKeyValueTimestamp, ClientResp];
+  axiom = [ax1];
+  config = [tId, tKey, tVal];
+  violation = dummy;
+  step = 4;
+}

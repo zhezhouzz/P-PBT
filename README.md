@@ -18,6 +18,12 @@ For example,
     # python3 script/run_bench.py ~/workplace/zzws/src/TestExamples-PTestGeneration random-p-sfa ClockBoundFormalModels ClockBoundInvariants
 ```
 
+A script run all cases:
+
+```
+    # ./script/run.sh
+```
+
 # Run P
 
 Goto corresponding folder with the same name as benchmark name in `TestExamples-PTestGeneration` repo.
