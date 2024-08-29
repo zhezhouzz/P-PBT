@@ -121,7 +121,7 @@ let mk_instantiateres_decl pfa op =
 (** handle response *)
 
 let mk_handle_function (cex, pfa) op =
-  let real_op, f = _get_force [%here] pfa.spec_tyctx.wrapper_ctx op.x in
+  let real_op, f = get_real_op pfa.spec_tyctx op.x in
   let event = "input" #: op.ty in
   let real_input = "msg" #: real_op.ty in
   if is_empty_record_ty real_op.ty then
@@ -217,7 +217,7 @@ let loop_state_function_decl (cex, pfa) request_ops =
       let e = mk_p_vassign (cex.p_state, next_state) in
       mk_p_it (mk_p_eq (mk_p_string op.x) (mk_pid action))
       @@ mk_p_seqs
-           [ e; mk_send pfa.spec_tyctx.wrapper_ctx op None ]
+           [ e; mk_send pfa.spec_tyctx op None ]
            (mk_p_goto loop_state_name)
     else
       let event = (spf "event_%s" op.x) #: op.ty in
@@ -240,7 +240,7 @@ let loop_state_function_decl (cex, pfa) request_ops =
                 (mk_p_app
                    (fst (mk_realize_instantiated_action_function (cex, pfa) op))
                    [ result ])
-                (mk_send pfa.spec_tyctx.wrapper_ctx op (Some (mk_pid event))))
+                (mk_send pfa.spec_tyctx op (Some (mk_pid event))))
       @@ mk_p_goto loop_state_name
   in
   let request_es = List.map mk_request_f request_ops in
@@ -299,9 +299,7 @@ let mk_err_state pfa =
       ops
   in
   let real_response_ops =
-    List.map
-      (fun op -> fst @@ _get_force [%here] pfa.spec_tyctx.wrapper_ctx op.x)
-      response_ops
+    List.map (fun op -> fst @@ get_real_op pfa.spec_tyctx op.x) response_ops
   in
   let es = List.map mk_err_handle_function real_response_ops in
   es

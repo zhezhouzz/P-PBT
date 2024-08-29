@@ -268,7 +268,13 @@ module MakeBasicAutomata (C : CHARAC) = struct
       | None -> state_naming := StateMap.add s (incr ()) !state_naming
     in
     let () = nfa_iter_states (fun s -> do_state_renaming s) nfa in
-    nfa_map_state (fun s -> StateMap.find s !state_naming) nfa
+    let f s =
+      (* NOTE: if there is unreachable final states, maps to 0 *)
+      match StateMap.find_opt s !state_naming with
+      | Some s' -> s'
+      | None -> _default_init_state
+    in
+    nfa_map_state f nfa
 
   let normalize_dfa (dfa : dfa) : dfa =
     let state_naming = ref StateMap.empty in
@@ -284,7 +290,13 @@ module MakeBasicAutomata (C : CHARAC) = struct
       | None -> state_naming := StateMap.add s (incr ()) !state_naming
     in
     let () = dfa_iter_states (fun s -> do_state_renaming s) dfa in
-    dfa_map_state (fun s -> StateMap.find s !state_naming) dfa
+    let f s =
+      (* NOTE: if there is unreachable final states, maps to 0 *)
+      match StateMap.find_opt s !state_naming with
+      | Some s' -> s'
+      | None -> _default_init_state
+    in
+    dfa_map_state f dfa
 
   let num_states_nfa (nfa : nfa) = nfa_fold_states (fun _ x -> x + 1) nfa 0
   let num_states_dfa (dfa : dfa) = dfa_fold_states (fun _ x -> x + 1) dfa 0

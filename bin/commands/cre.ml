@@ -80,12 +80,17 @@ let get_typed_spec p_header_file spec_source_file =
   let header_code = FrontWrapper.parse p_header_file in
   let reqresp_ctx = code_to_reqresp_ctx header_code in
   let env, simp_env, code = simplify_wrapper header_code header_code in
-  let tab = mk_wrappers (env, simp_env, header_code) in
+  let enum_names =
+    List.filter_map
+      (function WrapperEnum { enum_name; _ } -> Some enum_name | _ -> None)
+      code
+  in
+  let tab = mk_wrappers enum_names (env, simp_env, header_code) in
   let wrapper_ctx = tab_to_wrapper_ctx tab in
   let header = code_to_items header_code in
   let code = read_source_file spec_source_file () in
   let spec_ctx =
-    mk_spec_ctx (wrapper_ctx, reqresp_ctx) (predefined_code @ header @ code)
+    mk_spec_ctx (env, wrapper_ctx, reqresp_ctx) (predefined_code @ header @ code)
   in
   let code = struct_check spec_ctx code in
   (spec_ctx, code)
@@ -112,6 +117,26 @@ let read_p_and_spec p_header_file spec_source_file output_file () =
         (* let client = SymExplore.refine_client client in *)
         (* let () = Printf.printf "refined:\n" in *)
         (* let () = Instantiate.print_transsfa_client_violation client in *)
+        let client = SymExplore.rule_out_hidden client in
+        let () = Printf.printf "filtered:\n" in
+        let () = Instantiate.print_strsfa_client_violation client in
+        let () = Instantiate.print_transsfa_client_violation client in
+        (* let () = _die [%here] in *)
+        client)
+    @@ ctx_to_list client_ctx
+  in
+  compile_to_p_program (spec_ctx, clients) output_file ()
+
+let random_read_p_and_spec p_header_file spec_source_file output_file () =
+  let spec_ctx, code = get_typed_spec p_header_file spec_source_file in
+  let () = Printf.printf "%s\n" @@ layout_structure code in
+  let client_ctx = Instantiate.inst_client spec_ctx code in
+  (* let () = _die [%here] in *)
+  let clients =
+    List.map (fun x ->
+        let client = x.ty in
+        let () = Printf.printf "original:\n" in
+        let () = Instantiate.print_transsfa_client_violation client in
         let client = SymExplore.rule_out_hidden client in
         let () = Printf.printf "filtered:\n" in
         let () = Instantiate.print_strsfa_client_violation client in
@@ -175,8 +200,16 @@ let p_wrapper source_path header_spec_file () =
   in
   let () = Printf.printf "%s\n" (Backend.layout_p_wapper_decls code) in
   let env, simp_env, code = simplify_wrapper code header_spec in
-  (* let env, code = code_reduction env code in *)
-  let tab = mk_wrappers (env, simp_env, header_spec) in
+  let () =
+    Printf.printf "Sinmpified\n\n%s\n" (Backend.layout_p_wapper_decls code)
+  in
+  (* let () = _die [%here] in *)
+  let enum_names =
+    List.filter_map
+      (function WrapperEnum { enum_name; _ } -> Some enum_name | _ -> None)
+      code
+  in
+  let tab = mk_wrappers enum_names (env, simp_env, header_spec) in
   let () =
     Printf.printf "\n%s\n" (to_conversion_code (code, header_spec, tab))
   in
@@ -250,6 +283,7 @@ let cmds =
     ("read-sfa", one_param "read_sfa" read_sfa);
     ("read-p", one_param "read_p" read_p);
     ("read-p-sfa", three_param "read_p" read_p_and_spec);
+    ("random-p-sfa", three_param "read_p" random_read_p_and_spec);
     ("read-p-wrapper", two_param_string "p-wrapper" p_wrapper);
     ("read-p-repo", one_param_string "p-wrapper" read_p_repo);
   ]

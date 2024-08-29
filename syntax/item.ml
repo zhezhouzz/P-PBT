@@ -1,5 +1,6 @@
 open Ast
 open Zzdatatype.Datatype
+open Common
 
 let mk_spec_tyctx_one ctx = function
   | MFieldAssign { field; assignment } ->
@@ -30,9 +31,24 @@ let mk_spec_tyctx_one ctx = function
       { ctx with regex_tyctx = add_to_right ctx.regex_tyctx name }
   | MClient _ -> ctx
 
-let mk_spec_ctx (wrapper_ctx, reqresp_ctx) code =
+let mk_spec_ctx (env, wrapper_ctx, reqresp_ctx) code =
+  let p_tyctx =
+    Typectx (List.map (fun (x, ty) -> x #: ty) @@ StrMap.to_kv_list env)
+  in
   let spec_ctx = List.fold_left mk_spec_tyctx_one init_spec_tyctx code in
-  { spec_ctx with wrapper_ctx; reqresp_ctx }
+  let abs_names =
+    List.slow_rm_dup String.equal
+    @@ List.concat_map (fun l ->
+           List.concat_map (fun (_, nt) -> get_absty nt) l.ty)
+    @@ ctx_to_list spec_ctx.event_tyctx
+  in
+  let abstract_tyctx =
+    match spec_ctx.abstract_tyctx with
+    | Typectx l ->
+        Typectx
+          (List.filter (fun x -> List.exists (String.equal x.x) abs_names) l)
+  in
+  { spec_ctx with abstract_tyctx; wrapper_ctx; reqresp_ctx; p_tyctx }
 
 let add_config_to_spec_tyctx ctx names =
   let abstract_tyctx =
@@ -50,3 +66,8 @@ let layout_event_kind = function
   | Req -> "request"
   | Resp -> "response"
   | Hidden -> "hidden"
+
+let get_real_op { wrapper_ctx; p_tyctx; _ } op =
+  let real_op, f = _get_force [%here] wrapper_ctx op in
+  let real_op = real_op.x #: (_get_force [%here] p_tyctx real_op.x) in
+  (real_op, f)

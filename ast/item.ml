@@ -87,6 +87,7 @@ let remove_server_field_record_type = function
   | _ -> Sugar._die [%here]
 
 type spec_tyctx = {
+  p_tyctx : Nt.t Typectx.ctx;
   reqresp_ctx : string Typectx.ctx;
   wrapper_ctx : ((Nt.t, string) typed * (Nt.t, string) typed) Typectx.ctx;
   abstract_tyctx : concrete_type Typectx.ctx;
@@ -99,6 +100,7 @@ type spec_tyctx = {
 
 let init_spec_tyctx =
   {
+    p_tyctx = Typectx.emp;
     reqresp_ctx = Typectx.emp;
     wrapper_ctx = Typectx.emp;
     abstract_tyctx = Typectx.emp;

@@ -58,8 +58,8 @@ let mk_validate_function pfa op size =
 
 (** send *)
 
-let mk_send wrapper_ctx op payload =
-  let _, f = _get_force [%here] wrapper_ctx op.x in
+let mk_send spec_ctx op payload =
+  let _, f = get_real_op spec_ctx op.x in
   let dest = mk_pid server_domain_decl in
   match payload with
   | None -> mk_p_app f [ mk_p_this; dest ]

@@ -1,40 +1,57 @@
-/* mantianed by the successed response of put/get/delete, must have larger sqr */
-spec SuccStateOfKey (key: tByteString) (sqr: int) (recordType: enum) (val: int) = {
-  atom (respEq: eBrickGetResp | eBrickPutResp | eBrickDeleteResp) :: #key == key && #sqr == sqr && #recordType == recordType && #val == val && status == SUCCESS;
-  atom (respGT: eBrickGetResp | eBrickPutResp | eBrickDeleteResp) :: #key == key && #sqr > sqr && status == SUCCESS;
+/* mantianed by the SUCCESSed response of put/get/delete, must have larger sqr */
+spec SuccStateOfKey (key1: tKey) (sqr1: tSqr) (recordType1: tRecordType) (val1: tVal) {
+  atom (respEq: BrickGetResp | BrickPutResp | BrickDeleteResp) :: #key == key1 && #sqr == sqr1 && #recordType == recordType1 && #val == val1 && #responseStatus == (SUCCESS: tStatus);
+  atom (respGt: BrickGetResp | BrickPutResp | BrickDeleteResp) :: #key == key1 && not (#sqr < sqr1) && not (#sqr == sqr1) && #responseStatus == (SUCCESS: tStatus);
   regex (not (.* ~ respGt ~ .*)) && (.* ~ respEq ~ .*)
   }
 
-/* mantianed by the request of put/delete; don't consider sqr and there is no status */
-spec PendingStateOfKey (key: tByteString) (sqr: int) (recordType: enum) (val: int) = {
-  atom (respEq: eBrickPutReq | eBrickDeleteResp) :: #key == key && #sqr == sqr && #recordType == recordType && #val == val;
-  atom (respOther: eBrickPutReq | eBrickDeleteResp) :: #key == key;
+/* mantianed by the request of put/delete; don't consider sqr and there is no responseStatus */
+spec PendingStateOfKey (key1: tKey) (sqr1: tSqr) (recordType1: tRecordType) (val1: tVal) {
+  atom (respEq: BrickPutReq | BrickDeleteResp) :: #key == key1 && #sqr == sqr1 && #recordType == recordType1 && #val == val1;
+  atom (respOther: BrickPutReq | BrickDeleteResp) :: #key == key1;
   regex (.* ~ respEq ~ (. \ respOther)*)
   }
 
-spec SuccStateWhenReq (rId: int) (key: tByteString) (sqr: int) (recordType: enum) (val: int) = {
-  atom (req: eBrickGetReq) :: #key == key && #rId == rId
-  regex ((SuccStateOfKey key sqr recordType val) ~ req ~ .*)
+spec SuccStateWhenReq (rId1: tRId) (key1: tKey) (sqr1: tSqr) (recordType1: tRecordType) (val1: tVal) {
+  atom (req: BrickGetReq) :: #key == key1 && #rId == rId1;
+  regex ((SuccStateOfKey key1 sqr1 recordType1 val1) ~ req ~ .*)
   }
 
-spec SuccOrPendingStateWhenReq (rId: int) (key: tByteString) (sqr: int) (recordType: enum) (val: int) = {
-  atom (req: eBrickGetReq) :: #key == key && #rId == rId
-  regex ((SuccStateOfKey key sqr recordType val || PendingStateOfKey key sqr recordType val) ~ req ~ .*)
+spec SuccOrPendingStateWhenReq (rId1: tRId) (key1: tKey) (sqr1: tSqr) (recordType1: tRecordType) (val1: tVal) {
+  atom (req: BrickGetReq) :: #key == key1 && #rId == rId1;
+  regex (((SuccStateOfKey key1 sqr1 recordType1 val1) || (PendingStateOfKey key1 sqr1 recordType1 val1)) ~ req ~ .*)
   }
 
-/* we don't check the mono of sqr for TOMBSTONE? */
-spec GetConsistency1 (rId: int) (key: tByteString) (sqr: int) (recordType: enum) (val: int) = {
-  atom (respWrong : eBrickGetResp) :: #key == key && #rId == rId && #sqr < sqr && not (#recordType == TOMBSTONE)
-  regex not ((SuccStateWhenReq key sqr recordType val) ~ respWrong ~ .*);
+spec GetConsistency1 (rId1: tRId) (key1: tKey) (sqr1: tSqr) (recordType1: tRecordType) (val1: tVal) {
+  atom (respWrong : BrickGetResp) :: #key == key1 && #rId == rId1 && #sqr < sqr1 && not (#recordType == (TOMBSTONE: tRecordType));
+  regex not ((SuccStateWhenReq rId1 key1 sqr1 recordType1 val1) ~ respWrong ~ .*);
   }
 
-spec GetConsistency2 (rId: int) (key: tByteString) (sqr: int) (recordType: enum) (val: int) = {
-  atom (respWrong : eBrickGetResp) :: #key == key && #rId == rId && not (#sqr == sqr && #recordType == recordType && #val == val)
-  regex not ((SuccOrPendingStateWhenReq rId key sqr recordType val) ~ respWrong ~ .*);
+spec GetConsistency2 (rId1: tRId) (key1: tKey) (sqr1: tSqr) (recordType1: tRecordType) (val1: tVal) {
+  atom (respWrong : BrickGetResp) :: #key == key1 && #rId == rId1 && not (#sqr == sqr1 && #recordType == recordType1 && #val == val1);
+  regex not ((SuccOrPendingStateWhenReq rId1 key1 sqr1 recordType1 val1) ~ respWrong ~ .*);
   }
 
-spec GetEventually (rId: int) = {
-  atom (req: eBrickGetReq) :: #rId == rId
-  atom (resp: eBrickGetResp) :: #rId == rId
+spec GetEventually (rId1: tRId) {
+  atom (req: BrickGetReq) :: #rId == rId1;
+  atom (resp: BrickGetResp) :: #rId == rId1;
   regex not (.* ~ req ~ (. \ resp)*)
   }
+  
+/* the rId in request are unique */
+spec rIdUniqueReq (rId1: tRId) (key1: tKey) (sqr1: tSqr) (recordType1: tRecordType) (val1: tVal) {
+  atom (req: BrickPutReq | BrickGetReq | BrickDeleteReq) :: #rId == rId1 ;
+  regex not (.* ~ req ~ .* ~ req ~ .*)
+}
+
+spec dummy (rId1: tRId) (key1: tKey) (sqr1: tSqr) (recordType1: tRecordType) (val1: tVal) {
+  regex . ~ . ~ . ~ .
+}
+
+generator SynClient {
+  scope = [BrickGetReq, BrickGetResp, BrickPutReq, BrickPutResp, BrickDeleteReq, BrickDeleteResp];
+  axiom = [rIdUniqueReq];
+  config = [tKey, tVal];
+  violation = dummy;
+  step = 4;
+}

@@ -1,35 +1,6 @@
-let p_prim_types = [ "machine"; "any"; "string" ]
-
-let rec is_p_prim_type = function
-  | Nt.Ty_bool | Nt.Ty_int -> true
-  | Nt.Ty_record l -> List.for_all (fun (_, ty) -> is_p_prim_type ty) l
-  | Nt.Ty_tuple l -> List.for_all is_p_prim_type l
-  | Nt.Ty_constructor (name, [])
-    when List.exists (String.equal name) p_prim_types ->
-      true
-  | Nt.Ty_constructor (name, [ nt ]) ->
-      (String.equal "set" name || String.equal "req" name) && is_p_prim_type nt
-  | Nt.Ty_constructor (name, [ nt1; nt2 ]) ->
-      String.equal "map" name && is_p_prim_type nt1 && is_p_prim_type nt2
-  | _ -> false
-
 open Ast
+open Common
 open Zzdatatype.Datatype
-
-let get_absty nt =
-  let rec aux = function
-    | Nt.Ty_bool | Nt.Ty_int -> []
-    | Nt.Ty_record l -> List.concat_map (fun (_, ty) -> aux ty) l
-    | Nt.Ty_tuple l -> List.concat_map aux l
-    | Nt.Ty_constructor (name, [])
-      when List.exists (String.equal name) p_prim_types ->
-        []
-    | Nt.Ty_constructor (name, []) -> [ name ]
-    | Nt.Ty_constructor (_, [ nt ]) -> aux nt
-    | Nt.Ty_constructor (_, [ nt1; nt2 ]) -> aux nt1 @ aux nt2
-    | _ -> _die [%here]
-  in
-  List.slow_rm_dup String.equal (aux nt)
 
 let instantiate_absty (x, ty) nt =
   let rec aux nt =
@@ -279,7 +250,8 @@ let mk_p_event_to_event (x, p_x, l) =
     } )
 
 let mk_wrapper enum_names env (event_name, p_event_name) =
-  (* let () = Printf.printf "%s\n" (StrList.to_string (StrMap.to_key_list env)) in *)
+  (* let () = Printf.printf "%s\n" (StrList.to_string enum_names) in *)
+  (* let () = _die [%here] in *)
   let p_event_type =
     StrMap.find
       (spf "cannot find p_event_name: %s" p_event_name.x)
@@ -308,12 +280,7 @@ let mk_wrapper enum_names env (event_name, p_event_name) =
   (* in *)
   (event_name, p_event_name, fields)
 
-let mk_wrappers (_, env, code) =
-  let enum_names =
-    List.filter_map
-      (function WrapperEnum { enum_name; _ } -> Some enum_name | _ -> None)
-      code
-  in
+let mk_wrappers enum_names (_, env, code) =
   let wrappers =
     List.filter_map
       (function
