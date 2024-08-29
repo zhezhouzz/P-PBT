@@ -30,6 +30,7 @@ let domain_name spec_ctx nt =
 let qtype_seen_buffer_declear_opt spec_ctx nt =
   (* we don't care about machine type *)
   if String.equal "machine" (Nt.layout nt) then None
+  else if String.equal "bool" (Nt.layout nt) then None
   else
     (* let () = Printf.printf "Check: %s\n" (Nt.layout nt) in *)
     let cty = _get_force [%here] spec_ctx.abstract_tyctx (Nt.layout nt) in

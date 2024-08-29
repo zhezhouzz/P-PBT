@@ -1,0 +1,22 @@
+[
+  {
+    "name": "ClockBoundFormalModels",
+    "p_repo": "ClockBoundFormalModels/ClockBound"
+  },
+  {
+    "name": "GroverFormalModels",
+    "p_repo": "GroverFormalModels/Repair"
+  },
+  {
+    "name": "Kermit2PCModel",
+    "p_repo": "Kermit2PCModel"
+  },
+  {
+    "name": "MemoryDBCRRConflictResolutionModel",
+    "p_repo": "MemoryDBCRRConflictResolutionModel"
+  },
+  {
+    "name": "S3IndexBrickManagerPModels",
+    "p_repo": "S3IndexBrickManagerPModels"
+  }
+]

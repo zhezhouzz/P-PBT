@@ -69,5 +69,14 @@ let layout_event_kind = function
 
 let get_real_op { wrapper_ctx; p_tyctx; _ } op =
   let real_op, f = _get_force [%here] wrapper_ctx op in
-  let real_op = real_op.x #: (_get_force [%here] p_tyctx real_op.x) in
+  let ty =
+    (* HACK: some p event doesn't return record type *)
+    match _get_force [%here] p_tyctx real_op.x with
+    | Nt.Ty_record [ (_, Nt.Ty_constructor (name, [])) ]
+      when String.equal "tLsn" name ->
+        mk_p_abstract_ty "tLsn"
+    | Nt.Ty_record [ (_, Nt.Ty_bool) ] -> Nt.Ty_bool
+    | _ as t -> t
+  in
+  let real_op = real_op.x #: ty in
   (real_op, f)
