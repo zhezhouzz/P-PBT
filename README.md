@@ -1,6 +1,30 @@
 # P PBT
 Property-Based Testing For P
 
+# Install
+
+The easiest way to install the dependencies is via [OPAM](https://opam.ocaml.org/doc/Install.html).
+
+```
+  # opam init --auto-setup
+  # opam update
+  # opam switch create PPBT --package=ocaml-variants.4.14.1+options,ocaml-option-flambda
+  # eval $(opam env)
+  # opam install dune core core_unix yojson conf-c++ conf-python qcheck ocolor dolog ocamlbuild z3 ppx_deriving_yojson menhirLib menhir
+```
+
+The download the dependent library: https://github.com/zhezhouzz/language_utils, then install it.
+
+```
+    # cd language_utils
+    # opam install .
+```
+
+Then compile this repo:
+
+```
+    # dune build
+```
 
 # Run Synthesizer
 
