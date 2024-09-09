@@ -11,3 +11,7 @@ type 't lit =
 [@@deriving sexp, show, eq, ord]
 
 let eq_lit p1 p2 = equal_lit (fun _ _ -> true) p1 p2
+
+(** Ast builder *)
+
+let uAVar x = AVar (Nt.untyped x)

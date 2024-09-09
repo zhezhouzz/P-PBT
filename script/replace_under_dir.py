@@ -6,11 +6,18 @@ import subprocess
 regex = r"_failatwith __FILE__ __LINE__ \"die\""
 subst = "_die [%here]"
 
-regex = r"\[@@deriving sexp\]"
-subst = "[@@deriving sexp, show, eq, ord]"
+regex = "module Nt = Normalty.Frontend"
+subst = ""
+
+regex = "Zzdatatype.Datatype"
+subst = "Zdatatype"
+
+regex = "open Sugar"
+subst = ""
 
 walk_dir = sys.argv[1]
 tmp_path = "/tmp/.tmp"
+tmp_original_path = "/tmp/.tmp_original"
 
 print('walk_dir = ' + walk_dir)
 
@@ -28,13 +35,21 @@ for root, subdirs, files in os.walk(walk_dir):
         if os.path.splitext(filename)[-1] == ".ml":
             file_path = os.path.join(root, filename)
             print('\t- file %s (full path: %s)' % (filename, file_path))
+            proc = subprocess.run(["cp", file_path, tmp_original_path], shell=False)
+            if proc.returncode != 0:
+                print("the mv fails")
+                exit(1)
             with open(file_path, 'r+') as f:
-                f_content = f.read()
-                f_content = re.sub(regex, subst, f_content, 0, re.MULTILINE)
+                original_content = f.read()
+                f_content = re.sub(regex, subst, original_content, 0, re.MULTILINE)
                 f.seek(0)
                 f.write(f_content)
                 f.truncate()
             with open(tmp_path, 'w') as tmp:
                 proc = subprocess.run(["ocamlformat", file_path], shell=False, stdout=tmp)
-            proc = subprocess.run(["mv", tmp_path, file_path], shell=False)
-            # print("the commandline is {}".format(subprocess.list2cmdline(proc.args)))
+            if proc.returncode == 0:
+                proc = subprocess.run(["mv", tmp_path, file_path], shell=False)
+            else:
+                proc = subprocess.run(["mv", tmp_original_path, file_path], shell=False)
+                print("the command fails: {}".format(subprocess.list2cmdline(proc.args)))
+                exit(1)

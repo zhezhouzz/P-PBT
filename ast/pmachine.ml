@@ -73,8 +73,6 @@ type 't p_expr =
   | PPrintf of (string * ('t, 't p_expr) typed list)
 [@@deriving sexp, show, eq, ord]
 
-open Sugar
-
 let layout_sexp_p_expr pexpr =
   sexp_of_p_expr (fun _ -> Sexplib.Sexp.unit) pexpr |> Sexplib.Sexp.to_string
 
