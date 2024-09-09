@@ -26,7 +26,7 @@ let mk_instantiate_action_function (cex, pfa) op =
         mk_pid cex.p_state )
   in
   let input = input_name #: op.ty in
-  let res = "res" #: (Nt.mk_tuple [ Nt.Ty_bool; Nt.Ty_int ]) in
+  let res = "res" #: (Nt.Ty_tuple [ Nt.Ty_bool; Nt.Ty_int ]) in
   let is_valid, next_state = mk_depair (mk_pid res) in
   let cond =
     mk_p_app
@@ -161,7 +161,7 @@ let mk_handle_function (cex, pfa) op =
 
 (** mk_random_event *)
 
-let mk_random_event_field ctx op (x, ty) =
+let mk_random_event_field ctx op { x; ty } =
   match get_opt ctx.field_assignment (deparse_field op.x x) with
   (* | Some "self" -> (x, mk_p_self) *)
   (* | Some "server" -> (x, mk_pid machine_local_server_decl) *)

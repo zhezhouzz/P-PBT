@@ -109,7 +109,7 @@ let prop_func_decl namespace (op, i) =
     | Nt.Ty_record l -> l
     | _ -> _die [%here]
   in
-  let vsty = List.map snd vs in
+  let vsty = List.map _get_ty vs in
   (prop_func_name namespace (op.x, i))
   #: (Nt.construct_arr_tp (vsty, Nt.Ty_bool))
 

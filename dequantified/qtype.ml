@@ -1,5 +1,4 @@
 open Language
-(* open Zdatatype *)
 
 let qSeenBuffer = spf "%s_seen"
 let qDomain = spf "%s_domain"
@@ -56,7 +55,7 @@ let mk_p_update_buffer_from_event_expr spec_ctx (op, event_expr) =
   let feilds = match op.ty with Nt.Ty_record l -> l | _ -> _die [%here] in
   let feilds =
     List.filter_map
-      (fun (name, nt) ->
+      (fun { x = name; ty = nt } ->
         let* domain = qtype_seen_buffer_declear_opt spec_ctx nt in
         Some (mk_p_add_set (mk_pid domain) (mk_field event_expr name)))
       feilds
