@@ -3,17 +3,17 @@ import sys
 import re
 import subprocess
 
-regex = r"_failatwith __FILE__ __LINE__ \"die\""
-subst = "_die [%here]"
+regex = r"_failatwith __FILE__ __LINE__ "
+subst = "_die_with [%here] "
 
-regex = "module Nt = Normalty.Frontend"
-subst = ""
+# regex = "module Nt = Normalty.Frontend"
+# subst = ""
 
-regex = "Zzdatatype.Datatype"
-subst = "Zdatatype"
+# regex = "Zzdatatype.Datatype"
+# subst = "Zdatatype"
 
-regex = "open Sugar"
-subst = ""
+# regex = "open Sugar"
+# subst = ""
 
 walk_dir = sys.argv[1]
 tmp_path = "/tmp/.tmp"

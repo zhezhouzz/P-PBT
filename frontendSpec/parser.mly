@@ -81,9 +81,9 @@ biop:
 ;
 
 typed_var:
-  | LPAR id=IDENT COLON nt=nt RPAR {id #: (Some nt)}
-  | id=IDENT {id #: None}
-  | SHARP id=IDENT {id #: None}
+  | LPAR id=IDENT COLON nt=nt RPAR {id #: nt}
+  | id=IDENT {Nt.untyped id}
+  | SHARP id=IDENT {Nt.untyped id}
 ;
 
 typed_vars:
@@ -111,13 +111,13 @@ constant:
   lit:
 | c=constant {AC c}
 | id=typed_var {AVar id}
-| l1=typed_lit op=biop l2=typed_lit {AAppOp (op #: (None), [l1; l2])}
+| l1=typed_lit op=biop l2=typed_lit {AAppOp (Nt.untyped op, [l1; l2])}
 | LPAR lit=lit RPAR {lit}
 ;
 
   typed_lit:
-| LPAR lit=lit COLON nt=nt RPAR {lit #: (Some nt)}
-| lit=lit {lit #: (None)}
+| LPAR lit=lit COLON nt=nt RPAR {lit #: ( nt)}
+| lit=lit {Nt.untyped lit}
 ;
 
 prop:
@@ -240,7 +240,7 @@ op_names:
 
 atom:
   | ATOM LPAR id=IDENT COLON ops=op_names RPAR CCOLON p=prop SEMICOLON
-    {(id #: (Some mk_p_regex_ty), MultiAtomic (List.map (fun op -> EffEvent {op; vs = []; phi = p.y}) ops))}
+    {(id #: (mk_p_regex_ty), MultiAtomic (List.map (fun op -> EffEvent {op; vs = []; phi = p.y}) ops))}
 ;
 
 spec:

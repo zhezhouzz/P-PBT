@@ -111,7 +111,8 @@ let init_spec_tyctx =
 let mk_regex_func_type args =
   let argsty =
     List.map
-      (fun x -> match x.ty with Some nt -> nt | None -> Sugar._die [%here])
+      (fun x ->
+        match x.ty with Nt.Ty_unknown -> Sugar._die [%here] | nt -> nt)
       args
   in
   Nt.construct_arr_tp (argsty, mk_p_regex_ty)
