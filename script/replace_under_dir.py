@@ -6,14 +6,17 @@ import subprocess
 regex = r"_failatwith __FILE__ __LINE__ "
 subst = "_die_with [%here] "
 
-# regex = "module Nt = Normalty.Frontend"
-# subst = ""
+regex = "module Nt = Normalty.Frontend"
+subst = ""
 
-# regex = "Zzdatatype.Datatype"
-# subst = "Zdatatype"
+regex = "Zzdatatype.Datatype"
+subst = "Zdatatype"
 
-# regex = "open Sugar"
-# subst = ""
+regex = "open Sugar"
+subst = ""
+
+regex = "Nt.mk_tuple"
+subst = "Nt.Ty_tuple"
 
 walk_dir = sys.argv[1]
 tmp_path = "/tmp/.tmp"
@@ -32,7 +35,7 @@ for root, subdirs, files in os.walk(walk_dir):
     if "_build" in root:
         continue
     for filename in files:
-        if os.path.splitext(filename)[-1] == ".ml":
+        if (os.path.splitext(filename)[-1] == ".ml") or (os.path.splitext(filename)[-1] == ".mly"):
             file_path = os.path.join(root, filename)
             print('\t- file %s (full path: %s)' % (filename, file_path))
             proc = subprocess.run(["cp", file_path, tmp_original_path], shell=False)

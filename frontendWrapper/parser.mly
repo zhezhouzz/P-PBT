@@ -40,8 +40,8 @@ nt:
 ;
 
 type_feilds:
-  | id=IDENT COLON nt=nt {[(id, nt)]}
-  | id=IDENT COLON nt=nt COMMA ts=type_feilds {(id, nt) :: ts}
+  | id=IDENT COLON nt=nt {[(id #: nt)]}
+  | id=IDENT COLON nt=nt COMMA ts=type_feilds {(id #: nt) :: ts}
 ;
 
 type_tuple:

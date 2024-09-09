@@ -32,4 +32,4 @@ let smt_layout_ty = function
   | Some Nt.T.Ty_bool -> "Bool"
   | Some Nt.T.Ty_int -> "Int"
   | Some (Nt.T.Ty_constructor _) -> "Int"
-  | _ -> _failatwith __FILE__ __LINE__ "unimp"
+  | _ -> _die_with [%here] "unimp"

@@ -20,7 +20,7 @@ let rec layout_to_smtlib2 = function
   | Not p -> spf "(not %s)" (layout_to_smtlib2 p)
   | Iff (p1, p2) ->
       spf "(= %s %s)" (layout_to_smtlib2 p1) (layout_to_smtlib2 p2)
-  | Ite _ -> _failatwith __FILE__ __LINE__ "unimp"
+  | Ite _ -> _die_with [%here] "unimp"
   | Forall { qv; body } ->
       spf "(forall ((%s %s)) %s)" qv.x (smt_layout_ty qv.ty)
         (layout_to_smtlib2 body)

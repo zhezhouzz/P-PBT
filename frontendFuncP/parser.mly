@@ -45,8 +45,8 @@ base_nt:
 ;
 
 type_fields:
-  | id=IDENT COLON nt=base_nt {[(id, nt)]}
-  | id=IDENT COLON nt=base_nt SEMICOLON ts=type_fields {(id, nt) :: ts}
+  | id=IDENT COLON nt=base_nt {[(id #: nt)]}
+  | id=IDENT COLON nt=base_nt SEMICOLON ts=type_fields {(id #: nt) :: ts}
 ;
 
 product_nt:
@@ -62,7 +62,7 @@ arr_nt:
 nt:
   | nt=base_nt {nt}
   | nt=arr_nt {nt}
-  | nts=product_nt {Nt.mk_tuple nts}
+  | nts=product_nt {Nt.Ty_tuple nts}
   ;
 
 
@@ -83,8 +83,8 @@ biop:
 ;
 
 typed_var:
-  | LPAR id=IDENT COLON nt=nt RPAR {id #: (Some nt)}
-  | id=IDENT {id #: None}
+  | LPAR id=IDENT COLON nt=nt RPAR {id #: (nt)}
+  | id=IDENT {Nt.untyped id}
 ;
 
 typed_vars:
@@ -117,19 +117,19 @@ id_eq_expr_list:
 ;
 
 expr_closed:
-| NULL {{y = PNull #: None; loc = $startpos}}
-| THIS {{y = PThis #: None; loc = $startpos}}
-| c=constant {{y = (PConst c) #: None; loc = $startpos}}
-| id=typed_var {{y = (Pid id) #: None; loc = $startpos}}
-| record=expr_closed DOT field=IDENT {{y = (PField {record = record.y; field}) #: None; loc = $startpos}}
-| LBRACKET es=id_eq_expr_list RBRACKET {{y = (PRecord es) #: None; loc = $startpos}}
-| LBRACKET es=id_eq_expr_list SEMICOLON RBRACKET {{y = (PRecord es) #: None; loc = $startpos}}
+| NULL {{y = PNull #: Nt.Ty_unknown; loc = $startpos}}
+| THIS {{y = PThis #: Nt.Ty_unknown; loc = $startpos}}
+| c=constant {{y = (PConst c) #: Nt.Ty_unknown; loc = $startpos}}
+| id=typed_var {{y = (Pid id) #: Nt.Ty_unknown; loc = $startpos}}
+| record=expr_closed DOT field=IDENT {{y = (PField {record = record.y; field}) #: Nt.Ty_unknown; loc = $startpos}}
+| LBRACKET es=id_eq_expr_list RBRACKET {{y = (PRecord es) #: Nt.Ty_unknown; loc = $startpos}}
+| LBRACKET es=id_eq_expr_list SEMICOLON RBRACKET {{y = (PRecord es) #: Nt.Ty_unknown; loc = $startpos}}
 | LET lhs=typed_var ASSIGN rhs=expr SEMICOLON body=expr
-  {{y = (PLet {lhs; rhs = rhs.y; body = body.y}) #: None; loc = $startpos}}
-| GOTO st=IDENT {{ y = (PGoto st) #: None; loc = $startpos}}
-| DEREF e=expr_closed {{ y = (PDeref e.y) #: None; loc = $startpos}}
-| NOT e=expr_closed {{y = (PApp {pfunc = ("not" #: None); args = [e.y]}) #: None; loc = $startpos}}
-| e1=expr_closed op=biop e2=expr_closed {{y = (PApp {pfunc = (op #: None); args = [e1.y; e2.y]}) #: None; loc = $startpos}}
+  {{y = (PLet {lhs; rhs = rhs.y; body = body.y}) #: Nt.Ty_unknown; loc = $startpos}}
+| GOTO st=IDENT {{ y = (PGoto st) #: Nt.Ty_unknown; loc = $startpos}}
+| DEREF e=expr_closed {{ y = (PDeref e.y) #: Nt.Ty_unknown; loc = $startpos}}
+| NOT e=expr_closed {{y = (PApp {pfunc = ("not" #: Nt.Ty_unknown); args = [e.y]}) #: Nt.Ty_unknown; loc = $startpos}}
+| e1=expr_closed op=biop e2=expr_closed {{y = (PApp {pfunc = (op #: Nt.Ty_unknown); args = [e1.y; e2.y]}) #: Nt.Ty_unknown; loc = $startpos}}
 | LPAR e=expr RPAR {e}
 ;
 
@@ -140,9 +140,9 @@ expr_list:
 
 expr:
 | r=expr_closed {r}
-| lvalue=expr_closed COLONEQ rvalue=expr {{y = (PAssign {lvalue = lvalue.y; rvalue = rvalue.y}) #: None; loc = $startpos}}
-| rhs=expr_closed SEMICOLON body=expr {{y = (PSeq {rhs = rhs.y; body = body.y}) #: None; loc = $startpos}}
-| pfunc=typed_var args=expr_list {{y = (PApp {pfunc; args = (_gets args)}) #: None; loc = $startpos}}
+| lvalue=expr_closed COLONEQ rvalue=expr {{y = (PAssign {lvalue = lvalue.y; rvalue = rvalue.y}) #: Nt.Ty_unknown; loc = $startpos}}
+| rhs=expr_closed SEMICOLON body=expr {{y = (PSeq {rhs = rhs.y; body = body.y}) #: Nt.Ty_unknown; loc = $startpos}}
+| pfunc=typed_var args=expr_list {{y = (PApp {pfunc; args = (_gets args)}) #: Nt.Ty_unknown; loc = $startpos}}
 ;
 
 func_decl:
@@ -173,13 +173,13 @@ func_label:
 ;
 
 labeled_func_list:
-| fl=func_label fd=func_decl cs=labeled_func_list {(fl #: None, fd.y):: cs}
-| fl=func_label fd=func_decl {[(fl #: None, fd.y)]}
+| fl=func_label fd=func_decl cs=labeled_func_list {(Nt.untyped fl, fd.y):: cs}
+| fl=func_label fd=func_decl {[(Nt.untyped fl, fd.y)]}
 ;
 
 named_func_list:
-| PLAIN pfunc=IDENT fd=func_decl cs=named_func_list {((pfunc #: None), fd.y):: cs}
-| PLAIN pfunc=IDENT fd=func_decl {[((pfunc #: None), fd.y)]}
+| PLAIN pfunc=IDENT fd=func_decl cs=named_func_list {((Nt.untyped pfunc), fd.y):: cs}
+| PLAIN pfunc=IDENT fd=func_decl {[((Nt.untyped pfunc), fd.y)]}
 ;
 
 state:
@@ -214,10 +214,10 @@ item:
   | TYPEDEF id=IDENT ASSIGN nt=nt {{y = PTypeDecl (id #: (nt)); loc = $startpos}}
   | TYPEDEF id=IDENT ASSIGN MACHINEDEF {{y = PTypeDecl (id #: (mk_p_abstract_ty "machine")); loc = $startpos}}
   | EVENTDECL id=IDENT COLON nt=nt {{y = PEventDecl (id #: (nt)); loc = $startpos}}
-  | FUNCDECL id=biop COLON nt=nt {{y = PPrimFuncDecl (id #: (Some nt)); loc = $startpos}}
-  | FUNCDECL id=IDENT COLON nt=nt {{y = PPrimFuncDecl (id #: (Some nt)); loc = $startpos}}
+  | FUNCDECL id=biop COLON nt=nt {{y = PPrimFuncDecl (id #: (nt)); loc = $startpos}}
+  | FUNCDECL id=IDENT COLON nt=nt {{y = PPrimFuncDecl (id #: (nt)); loc = $startpos}}
   | m=machine {{y = PMachine m.y; loc = $startpos}}
-  | PLAIN pfunc=IDENT fd=func_decl {{y = PGlobalFunc (pfunc #: None, fd.y); loc = $startpos}}
+  | PLAIN pfunc=IDENT fd=func_decl {{y = PGlobalFunc (Nt.untyped pfunc, fd.y); loc = $startpos}}
 ;
 
 item_list:

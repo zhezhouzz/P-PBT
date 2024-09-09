@@ -71,8 +71,8 @@ let mk_reg_func args r =
   List.fold_right
     (fun arg body ->
       match arg.ty with
-      | None -> _failatwith __FILE__ __LINE__ "the arguments must be typed"
-      | Some ty -> RExpr (QFRegex { qv = arg.x #: (RForall ty); body }))
+      | Nt.Ty_unknown -> _die_with [%here] "the arguments must be typed"
+      | ty -> RExpr (QFRegex { qv = arg.x #: (RForall ty); body }))
     args r
 
 let rec map_label_in_regex (f : 'a -> 'b) (regex : ('t, 'a) regex) :

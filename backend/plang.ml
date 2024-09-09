@@ -16,7 +16,7 @@ let rec layout_pnt t =
         spf "(%s)" @@ List.split_by ", " aux ts
     | Ty_record l -> (
         match l with
-        | [] -> "" (* _failatwith __FILE__ __LINE__ "bad record" *)
+        | [] -> "" (* _die_with [%here] "bad record" *)
         | x :: _ when String.equal x.x "0" ->
             let l = List.map _get_ty l in
             spf "(%s)" @@ List.split_by ", " layout_pnt l
@@ -66,7 +66,7 @@ let layout_const = function
   | PRandomBool -> "$"
   | PUnit -> ""
   | PDefault nt -> spf "default(%s)" (layout_pnt nt)
-(* | _ -> _failatwith __FILE__ __LINE__ "unimp" *)
+(* | _ -> _die_with [%here] "unimp" *)
 
 let mk_indent n str = spf "%s%s" (String.init (n * 2) (fun _ -> ' ')) str
 let mk_indent_line n str = spf "%s%s\n" (String.init (n * 2) (fun _ -> ' ')) str
@@ -179,7 +179,7 @@ let rec layout_p_expr ctx n = function
   | PPrintf (format, es) ->
       spf "print format(\"%s\", %s)" format
         (List.split_by ", " (layout_typed_p_expr ctx 0) es)
-  | PLet _ -> _failatwith __FILE__ __LINE__ "unimp"
+  | PLet _ -> _die_with [%here] "unimp"
 
 and layout_typed_p_expr ctx n { x; ty } =
   match (x, ty) with

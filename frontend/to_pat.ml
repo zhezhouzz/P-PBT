@@ -29,7 +29,7 @@ let constructor_to_term_or_op c : term_or_op =
   | "()" -> C_is_term mk_unit
   | name -> (
       match To_op.string_to_op name with
-      | None -> _failatwith __FILE__ __LINE__ "die: pat"
+      | None -> _die_with [%here] "die: pat"
       | Some op -> C_is_op op #: None)
 
 let rec pattern_to_term pattern =

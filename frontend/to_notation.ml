@@ -8,16 +8,12 @@ let get_denoteopt_from_attr a =
 let get_denoteopt expr = get_denoteopt_from_attr expr.pexp_attributes
 
 let get_denote expr =
-  match get_denoteopt expr with
-  | Some x -> x
-  | None -> _failatwith __FILE__ __LINE__ ""
+  match get_denoteopt expr with Some x -> x | None -> _die_with [%here] ""
 
 let get_pat_denoteopt pat = get_denoteopt_from_attr pat.ppat_attributes
 
 let get_pat_denote expr =
-  match get_pat_denoteopt expr with
-  | Some x -> x
-  | None -> _failatwith __FILE__ __LINE__ ""
+  match get_pat_denoteopt expr with Some x -> x | None -> _die_with [%here] ""
 
 type notation = FA | EX | PI
 
@@ -52,4 +48,4 @@ let notation_of_expr arg =
       in
       let ty = Nt.core_type_to_t ct in
       (q, arg #: ty)
-  | _ -> _failatwith __FILE__ __LINE__ "quantifier needs type notation"
+  | _ -> _die_with [%here] "quantifier needs type notation"

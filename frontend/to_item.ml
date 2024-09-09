@@ -35,7 +35,7 @@ let ocaml_structure_item_to_item structure =
       let () =
         Printf.printf "%s\n" (Pprintast.string_of_structure [ structure ])
       in
-      _failatwith __FILE__ __LINE__ "translate not a func_decl"
+      _die_with [%here] "translate not a func_decl"
 
 let ocaml_structure_to_items structure =
   List.filter_map ocaml_structure_item_to_item structure

@@ -16,7 +16,7 @@ let rec lit_to_expr expr =
     | AC c -> constant_to_expr c
     | AAppOp (op, args) -> mk_op_apply (op.x, List.map typed_lit_to_expr args)
     | ATu l -> mk_tuple_expr (List.map typed_lit_to_expr l)
-    | AProj _ -> _failatwith __FILE__ __LINE__ "unimp"
+    | AProj _ -> _die_with [%here] "unimp"
     | AVar x -> mkvar x.x
   in
   aux expr
@@ -30,8 +30,8 @@ let rec layout_lit_to_smtlib2 expr =
     | AAppOp (op, args) ->
         let op = match op.x with "==" -> "=" | _ -> op.x in
         spf "(%s %s)" op (List.split_by " " layout_typed_lit_to_smtlib2 args)
-    | ATu _ -> _failatwith __FILE__ __LINE__ "unimp"
-    | AProj _ -> _failatwith __FILE__ __LINE__ "unimp"
+    | ATu _ -> _die_with [%here] "unimp"
+    | AProj _ -> _die_with [%here] "unimp"
     | AVar x -> x.x
   in
   aux expr

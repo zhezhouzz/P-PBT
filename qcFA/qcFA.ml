@@ -31,7 +31,7 @@ let test_regex_fa (times : int) (regex : raw_regex) =
       if not (accept fa str) then
         let () = Printf.printf "For regex:\n%s\n" (layout_raw_regex regex) in
         let () = Printf.printf "error: %s\n" (string_of_charlist str) in
-        _failatwith __FILE__ __LINE__ "err")
+        _die_with [%here] "err")
     strs
 
 let test_fa_1 (f : bool -> bool -> bool) (times : int) (fa1 : fa) (fa2 : fa) =
@@ -44,7 +44,7 @@ let test_fa_1 (f : bool -> bool -> bool) (times : int) (fa1 : fa) (fa2 : fa) =
         let () = Printf.printf "error: %s\n" (string_of_charlist str) in
         let () = Printf.printf "[f1 accept: %b]\n%s\n" b1 (layout fa1) in
         let () = Printf.printf "[f2 accept: %b]\n%s\n" b2 (layout fa2) in
-        _failatwith __FILE__ __LINE__ "err")
+        _die_with [%here] "err")
     strs
 
 let test_fa_2 (f : bool -> bool -> bool -> bool) (times : int) (fa1 : fa)
@@ -60,7 +60,7 @@ let test_fa_2 (f : bool -> bool -> bool -> bool) (times : int) (fa1 : fa)
         let () = Printf.printf "fa1 accept: %b\n" b1 in
         let () = Printf.printf "fa2 accept: %b\n" b2 in
         let () = Printf.printf "fa3 accept: %b\n" b3 in
-        _failatwith __FILE__ __LINE__ "err")
+        _die_with [%here] "err")
     strs
 
 let test_fa_equal = test_fa_1 ( == )

@@ -191,8 +191,8 @@ let expr_of_ocamlexpr expr =
                 let res = aux arg in
                 match res.x with
                 | AppOp (_, _) -> res
-                | _ -> _failatwith __FILE__ __LINE__ "Syntax Error: perform")
-            | _ -> _failatwith __FILE__ __LINE__ "Syntax Error: perform")
+                | _ -> _die_with [%here] "Syntax Error: perform")
+            | _ -> _die_with [%here] "Syntax Error: perform")
         | Var name when String.equal name kw_builtin -> (
             match args with
             | [ (_, arg) ] -> (
@@ -200,8 +200,8 @@ let expr_of_ocamlexpr expr =
                 match res.x with
                 | App ({ x = Var op; ty }, args) ->
                     (AppOp ({ x = Op.BuiltinOp op; ty }, args)) #: res.ty
-                | _ -> _failatwith __FILE__ __LINE__ "Syntax Error: builtin")
-            | _ -> _failatwith __FILE__ __LINE__ "Syntax Error: builtin")
+                | _ -> _die_with [%here] "Syntax Error: builtin")
+            | _ -> _die_with [%here] "Syntax Error: builtin")
         | _ -> (App (func, List.map (fun x -> aux @@ snd x) args)) #: None)
     | Pexp_ifthenelse (e1, e2, Some e3) ->
         (Ite (aux e1, aux e2, aux e3)) #: None
@@ -218,7 +218,7 @@ let expr_of_ocamlexpr expr =
                     args = List.map to_var args;
                     exp = aux case.pc_rhs;
                   }
-              | _ -> _failatwith __FILE__ __LINE__ "?")
+              | _ -> _die_with [%here] "?")
             cases
         in
         (Match (aux case_target, cs)) #: None

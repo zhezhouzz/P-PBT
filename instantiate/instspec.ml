@@ -43,7 +43,7 @@ let rec eta_reduction_regex_expr (ctx : rexpr ctx) (inst : rexpr) : rexpr =
         | None -> Repeat (x, r)
         | Some (RConst (I m)) -> RRegex (RepeatN (m, r))
         | Some (RVar y) -> Repeat (y.x, r)
-        | _ -> _failatwith __FILE__ __LINE__ (spf "wrong defined %s" x))
+        | _ -> _die_with [%here] (spf "wrong defined %s" x))
   in
   aux ctx inst
 

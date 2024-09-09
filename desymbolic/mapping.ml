@@ -193,6 +193,6 @@ let mk_simp_local_prop features local_m ids =
       | [] -> mk_false
       | _ ->
           mk_true
-          (* _failatwith __FILE__ __LINE__ *)
+          (* _die_with [%here] *)
           (* (spf "len(paths) = %i" (List.length paths)) *))
   | _ -> DT.classify_as_prop features (List.map (DT.path_to_pos features) paths)

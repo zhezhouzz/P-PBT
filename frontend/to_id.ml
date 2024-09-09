@@ -18,7 +18,7 @@ let longid_to_id c =
   match Longident.flatten c.Location.txt with
   | [] -> _die [%here]
   | [ c ] -> c
-  | _ -> _failatwith __FILE__ __LINE__ "un-imp"
+  | _ -> _die_with [%here] "un-imp"
 
 let id_to_longid x =
   match Longident.unflatten [ x ] with

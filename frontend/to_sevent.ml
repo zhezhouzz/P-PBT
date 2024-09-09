@@ -40,7 +40,7 @@ let get_self ct =
   | Ptyp_extension (name, PTyp ty) -> name.txt #: (Nt.core_type_to_t ty)
   | _ ->
       let () = Printf.printf "\nct: %s\n" (Oparse.string_of_core_type ct) in
-      _failatwith __FILE__ __LINE__ ""
+      _die_with [%here] ""
 
 let vars_phi_sevent_of_expr expr =
   let rec aux expr =

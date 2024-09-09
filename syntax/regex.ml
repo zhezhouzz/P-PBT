@@ -172,8 +172,7 @@ let delimit_context (delimit_cotexnt_char : 'a list option * 'a -> 'a list)
   in
   let rec aux ctx regex =
     match regex with
-    | RExpr _ | SyntaxSugar _ ->
-        _failatwith __FILE__ __LINE__ "should be eliminated"
+    | RExpr _ | SyntaxSugar _ -> _die_with [%here] "should be eliminated"
     | Extension (ComplementA EmptyA) -> StarA (MultiAtomic (force_ctx ctx))
     | Extension (ComplementA EpsilonA) ->
         SeqA (MultiAtomic (force_ctx ctx), StarA (MultiAtomic (force_ctx ctx)))
@@ -204,7 +203,7 @@ let gather_regex regex =
   let rec aux regex m =
     match regex with
     | RExpr _ | SyntaxSugar _ | Extension _ ->
-        _failatwith __FILE__ __LINE__ "should be eliminated"
+        _die_with [%here] "should be eliminated"
     | RepeatN (_, r) -> aux r m
     | EmptyA -> m
     | EpsilonA -> m
@@ -278,7 +277,7 @@ let simp_regex (eq : 'a -> 'a -> bool) (regex : ('t, 'a) regex) =
     (* let () = Printf.printf "simp: %s\n" @@ layout_sexp_regex regex in *)
     match regex with
     | RExpr _ | SyntaxSugar _ | Extension _ ->
-        _failatwith __FILE__ __LINE__ "should be eliminated"
+        _die_with [%here] "should be eliminated"
     | RepeatN (n, r) -> RepeatN (n, aux r)
     | EmptyA -> EmptyA
     | EpsilonA -> EpsilonA
@@ -313,11 +312,3 @@ let simp_regex (eq : 'a -> 'a -> bool) (regex : ('t, 'a) regex) =
         | body -> DComplementA { atoms; body })
   in
   aux regex
-
-let mk_reg_func args r =
-  List.fold_right
-    (fun arg body ->
-      match arg.ty with
-      | None -> _failatwith __FILE__ __LINE__ "the arguments must be typed"
-      | Some ty -> RExpr (QFRegex { qv = arg.x #: (RForall ty); body }))
-    args r

@@ -466,7 +466,7 @@ module MakeAutomata (C : CHARAC) = struct
       | 0 -> Eps
       | 1 -> r
       | _ when n > 1 -> seq r (aux (n - 1, r))
-      | _ -> _failatwith __FILE__ __LINE__ "invalid repeat"
+      | _ -> _die_with [%here] "invalid repeat"
     in
     aux (n, r)
 

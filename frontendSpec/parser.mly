@@ -46,8 +46,8 @@ base_nt:
 ;
 
 type_feilds:
-  | id=IDENT COLON nt=base_nt {[(id, nt)]}
-  | id=IDENT COLON nt=base_nt COMMA ts=type_feilds {(id, nt) :: ts}
+  | id=IDENT COLON nt=base_nt {[(id #: nt)]}
+  | id=IDENT COLON nt=base_nt COMMA ts=type_feilds {(id #: nt) :: ts}
 ;
 
 product_nt:
@@ -63,7 +63,7 @@ arr_nt:
 nt:
   | nt=base_nt {nt}
   | nt=arr_nt {nt}
-  | nts=product_nt {Nt.mk_tuple nts}
+  | nts=product_nt {Nt.Ty_tuple nts}
   ;
 
 
@@ -222,8 +222,8 @@ enum_elem_list:
   ;
 
 event_feilds:
-  | id=IDENT COLON tp=nt COMMA cs=event_feilds {(id, tp) :: cs}
-  | id=IDENT COLON tp=nt {[(id, tp)]}
+  | id=IDENT COLON tp=nt COMMA cs=event_feilds {(id #: tp) :: cs}
+  | id=IDENT COLON tp=nt {[(id #: tp)]}
 ;
 
 p_event_define:

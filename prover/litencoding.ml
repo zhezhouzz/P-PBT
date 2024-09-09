@@ -6,7 +6,7 @@ open Sugar
 let constant_to_z3 ctx c =
   match c with
   | U | Tu _ | Dt _ | SetLiteral _ ->
-      _failatwith __FILE__ __LINE__ "unimp complex constant encoding"
+      _die_with [%here] "unimp complex constant encoding"
   | B b -> bool_to_z3 ctx b
   | I i -> int_to_z3 ctx i
 

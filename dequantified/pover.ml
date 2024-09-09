@@ -24,7 +24,7 @@ let world_iter_with_transitions pfa (f : pexpr StrMap.t -> pexpr -> pexpr)
 let mk_next_world_function pfa world (kind, op) =
   let just_check_sat = "just_check_sat" #: Nt.Ty_bool in
   (* let op = "op" #: (mk_p_string_ty) in *)
-  let res = "res" #: (Nt.mk_tuple [ Nt.Ty_bool; Nt.Ty_int ]) in
+  let res = "res" #: (Nt.Ty_tuple [ Nt.Ty_bool; Nt.Ty_int ]) in
   let input = input_name #: op.ty in
   let func = validate_function_decl op in
   let if_valid = "if_valid" #: Nt.Ty_bool in
@@ -64,8 +64,7 @@ let mk_next_world_function pfa world (kind, op) =
       (mk_p_assign (world_expr world, tmp_world_expr world))
       (match kind with
       | Resp -> None
-      | Hidden ->
-          _failatwith __FILE__ __LINE__ "the hidden event should be eliminated"
+      | Hidden -> _die_with [%here] "the hidden event should be eliminated"
       | Req -> Some (mk_send op (mk_pid input)))
   in
   let last = mk_return (mk_pid if_valid) in

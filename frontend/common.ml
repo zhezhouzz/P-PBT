@@ -32,7 +32,7 @@ let smt_layout_ty = function
   | Some Nt.Ty_bool -> "Bool"
   | Some Nt.Ty_int -> "Int"
   | Some (Nt.Ty_constructor _) -> "Int"
-  | _ -> _failatwith __FILE__ __LINE__ "unimp"
+  | _ -> _die_with [%here] "unimp"
 
 type 't layout_setting = {
   sym_true : string;

@@ -14,12 +14,12 @@ let of_expr_aux label_of_expr expr =
   let parse_labels a =
     match a.pexp_desc with
     | Pexp_array es -> List.map label_of_expr es
-    | _ -> _failatwith __FILE__ __LINE__ "expected an array of lables "
+    | _ -> _die_with [%here] "expected an array of lables "
   in
   let parse_ids a =
     match a.pexp_desc with
     | Pexp_array es -> List.map id_of_expr es
-    | _ -> _failatwith __FILE__ __LINE__ "expected an array of names "
+    | _ -> _die_with [%here] "expected an array of names "
   in
   let rec aux expr =
     match expr.pexp_desc with
