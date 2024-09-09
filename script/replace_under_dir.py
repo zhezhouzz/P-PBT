@@ -6,6 +6,9 @@ import subprocess
 regex = r"_failatwith __FILE__ __LINE__ \"die\""
 subst = "_die [%here]"
 
+regex = r"\[@@deriving sexp\]"
+subst = "[@@deriving sexp, show, eq, ord]"
+
 walk_dir = sys.argv[1]
 tmp_path = "/tmp/.tmp"
 

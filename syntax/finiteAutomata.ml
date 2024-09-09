@@ -22,7 +22,7 @@ module MakeAutomata (C : CHARAC) = struct
   module C = MakeC (C)
   include MakeBasicAutomata (C)
   module CharSet = Set.Make (C)
-  open Zzdatatype.Datatype
+  open Zdatatype
 
   type raw_regex =
     | Empty : raw_regex (* L = { } *)

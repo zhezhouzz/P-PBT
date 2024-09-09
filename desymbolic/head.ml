@@ -1,4 +1,4 @@
-open Zzdatatype.Datatype
+open Zdatatype
 open Language
 
 type features = Nt.t lit array
@@ -35,7 +35,7 @@ let dummy =
 
 let litlist_to_tab (vs, l) =
   (* let l = *)
-  (*   if List.exists (fun x -> Nt.eq x.ty (mk_p_abstract_ty "tSeqNbr")) vs then *)
+  (*   if List.exists (fun x -> Nt.equal_nt x.ty (mk_p_abstract_ty "tSeqNbr")) vs then *)
   (*     dummy :: l *)
   (*   else l *)
   (* in *)
@@ -45,7 +45,7 @@ let litlist_to_tab (vs, l) =
 let build_partial_one partial_func vars =
   let tys, _ = Nt.destruct_arr_tp partial_func.ty in
   let ty = List.nth tys 0 in
-  let vars = List.filter (fun lit -> Nt.eq lit.ty ty) vars in
+  let vars = List.filter (fun lit -> Nt.equal_nt lit.ty ty) vars in
   let pairs = List.combination_l vars 2 in
   let plits = List.map (fun l -> AAppOp (partial_func, l)) pairs in
   plits
@@ -57,7 +57,7 @@ let get_partail_op lits =
   let lits = List.concat @@ StrMap.to_value_list @@ StrMap.map snd lits in
   let aux = function
     | AAppOp (f, l) when not (String.equal f.x "==") -> (
-        match l with [ a; b ] when Nt.eq a.ty b.ty -> Some f | _ -> None)
+        match l with [ a; b ] when Nt.equal_nt a.ty b.ty -> Some f | _ -> None)
     | _ -> None
   in
   let res = List.filter_map aux lits in

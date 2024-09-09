@@ -1,5 +1,5 @@
 open Language
-open Zzdatatype.Datatype
+open Zdatatype
 
 type rexpr = (Nt.t, Nt.t sevent) regex_expr
 
@@ -13,7 +13,7 @@ let unify_multiple_qvs qvss =
         | Some qvs ->
             if
               List.eq
-                (fun a b -> String.equal a.x b.x && Nt.eq a.ty b.ty)
+                (fun a b -> String.equal a.x b.x && Nt.equal_nt a.ty b.ty)
                 qvs qvs'
             then Some qvs
             else None)

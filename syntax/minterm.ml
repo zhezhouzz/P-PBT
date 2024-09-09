@@ -1,5 +1,5 @@
 open Ast
-open Zzdatatype.Datatype
+open Zdatatype
 
 let mt_to_string { op; global_embedding; local_embedding } =
   spf "%s_%i_%i" op global_embedding local_embedding

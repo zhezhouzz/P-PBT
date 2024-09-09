@@ -30,7 +30,7 @@ let lift_bound_varaibles (expr : (Nt.t, Nt.t p_expr) typed) =
   in
   aux expr
 
-open Zzdatatype.Datatype
+open Zdatatype
 
 let mk_p_function_decl params local_vars body =
   let vars, body = lift_bound_varaibles body in

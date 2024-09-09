@@ -10,7 +10,7 @@ let get_type q =
   let rec aux = function
     | RPi { sort; body } -> Nt.mk_arr (ty_set sort.ty) (aux body)
     | RForall { qv; body } -> Nt.mk_arr qv.ty (aux body)
-    | _ -> Nt.unit_ty
+    | _ -> Nt.Ty_unit
   in
   aux q
 

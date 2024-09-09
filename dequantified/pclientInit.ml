@@ -1,5 +1,5 @@
 open Language
-open Zzdatatype.Datatype
+open Zdatatype
 open Pfa
 
 (* type client_basic = { *)

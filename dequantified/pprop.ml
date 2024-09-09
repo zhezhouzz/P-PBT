@@ -1,5 +1,5 @@
 open Language
-open Zzdatatype.Datatype
+open Zdatatype
 
 let const_to_p_const = function
   | U -> PUnit

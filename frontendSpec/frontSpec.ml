@@ -1,6 +1,6 @@
 open Past
 open Ast
-open Zzdatatype.Datatype
+open Zdatatype
 
 let layout_position (p : Lexing.position) =
   let open Lexing in

@@ -22,7 +22,7 @@
    ; finiteAutomata
    regex
    ; qregex
-   typectx
+   ; typectx
    ; nfa
    basicFA
    finiteAutomata
@@ -35,4 +35,4 @@
  )
  (preprocess
   (pps ppx_optcomp ppx_compare ppx_sexp_conv ppx_here))
- (libraries core language_utils ast dtree backend))
+ (libraries core ast dtree backend))

@@ -1,6 +1,6 @@
 open Sexplib.Std
-open Mtyped
 open Constant
+open Zutils
 
 type 't lit =
   | AC of constant

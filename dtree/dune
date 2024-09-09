@@ -5,7 +5,7 @@
 (library
  (public_name automata_library.dtree)
  (name dtree)
- (libraries str bigarray language_utils)
+ (libraries str bigarray zutils)
  (modules
    FastDT
    dt

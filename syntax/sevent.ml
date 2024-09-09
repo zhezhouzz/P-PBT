@@ -1,6 +1,5 @@
 open Ast
-open Mtyped
-open Sugar
+open Zutils
 open Prop
 (* open Common *)
 
@@ -12,13 +11,9 @@ let layout_sexp_se regex =
 let fv sevent =
   match sevent with
   | GuardEvent { vs; phi } ->
-      Zzdatatype.Datatype.List.substract (typed_eq String.equal)
-        ([] @ fv_prop phi)
-        vs
+      Zdatatype.List.substract (typed_eq String.equal) ([] @ fv_prop phi) vs
   | EffEvent { vs; phi; _ } ->
-      Zzdatatype.Datatype.List.substract (typed_eq String.equal)
-        ([] @ fv_prop phi)
-        vs
+      Zdatatype.List.substract (typed_eq String.equal) ([] @ fv_prop phi) vs
 
 (* subst *)
 
@@ -72,7 +67,7 @@ let mk_top_sevent (op : string) l =
   (* normalize_name @@ *)
   EffEvent { op; vs; phi = mk_true }
 
-open Zzdatatype.Datatype
+open Zdatatype
 
 type gathered_lits = {
   global_lits : Nt.t lit list;

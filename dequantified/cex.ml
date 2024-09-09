@@ -1,5 +1,5 @@
 open Language
-open Zzdatatype.Datatype
+open Zdatatype
 open Pfa
 
 let p_option_decl qv =

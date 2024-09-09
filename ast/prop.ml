@@ -1,6 +1,5 @@
 open Sexplib.Std
-open Mtyped
-module Nt = Normalty.Ntyped
+open Zutils
 open Lit
 
 type 't prop =

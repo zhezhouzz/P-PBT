@@ -1,5 +1,5 @@
 open Language
-open Zzdatatype.Datatype
+open Zdatatype
 open Register
 open Pprop
 module S2D = SFA.CharMap

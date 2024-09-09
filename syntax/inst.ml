@@ -18,7 +18,7 @@ let rec get_qvs_from_world = function
 (*   | WMap { qv; world; } -> *)
 (*       (qv.x #: abstract_type) :: get_abstract_qvs_from_world world *)
 
-open Zzdatatype.Datatype
+open Zdatatype
 
 let rec layout_world = function
   | WState -> ""

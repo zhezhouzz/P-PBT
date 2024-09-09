@@ -3,9 +3,9 @@ open Ast
 let rec constant_to_nt c =
   let open Nt in
   match c with
-  | U -> unit_ty
-  | B _ -> bool_ty
-  | I _ -> int_ty
+  | U -> Ty_unit
+  | B _ -> Ty_bool
+  | I _ -> Ty_int
   | Tu l -> Nt.Ty_tuple (List.map constant_to_nt l)
   | Dt _ | SetLiteral _ -> failwith "Not implemented"
 

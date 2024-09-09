@@ -1,11 +1,11 @@
 include Head
-open Zzdatatype.Datatype
+open Zdatatype
 open Language
-open Sugar
+open Zutils
 
 let partial_evaluate_lit global_tab lit =
   match Hashtbl.find_opt global_tab lit.x with
-  | Some b -> { x = AC (B b); ty = Nt.bool_ty }
+  | Some b -> { x = AC (B b); ty = Nt.Ty_bool }
   | None -> lit
 
 let partial_evaluate_prop global_tab prop =

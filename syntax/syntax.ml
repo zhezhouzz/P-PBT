@@ -4,7 +4,8 @@ include Constant
 include Lit
 include Prop
 include Sevent
-include Typectx
+
+(* include Typectx *)
 include Regex
 include Pmachine
 

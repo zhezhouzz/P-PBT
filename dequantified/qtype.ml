@@ -1,5 +1,5 @@
 open Language
-(* open Zzdatatype.Datatype *)
+(* open Zdatatype *)
 
 let qSeenBuffer = spf "%s_seen"
 let qDomain = spf "%s_domain"
@@ -75,7 +75,7 @@ let mk_index_set_function_decl =
   "mk_index_set"
   #: (Nt.mk_arr
         (mk_p_seq_ty (mk_p_abstract_ty "machine"))
-        (mk_p_set_ty Nt.int_ty))
+        (mk_p_set_ty Nt.Ty_int))
 
 (* NOTE: add machine_local_server_decl *)
 let mk_qtype_init_input ctx =

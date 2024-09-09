@@ -22,4 +22,4 @@ let is_dt_op str =
 let id_eq_op = function PrimOp "==" -> true | _ -> false
 let id_is_dt name = String.(equal name @@ capitalize_ascii name)
 let mk_eq_op = PrimOp eq_op
-let typed_op_string ty = eq_op #: Nt.(mk_arr ty (mk_arr ty bool_ty))
+let typed_op_string ty = eq_op #: Nt.(mk_arr ty (mk_arr ty Ty_bool))

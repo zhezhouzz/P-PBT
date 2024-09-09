@@ -1,5 +1,4 @@
 open Ast
-open Mtyped
 
 let rec fv_lit (lit_e : 't lit) =
   match lit_e with
@@ -29,23 +28,23 @@ let rec subst_lit (string_x : string) f (lit_e : 't lit) =
           List.map (typed_subst_lit string_x f) _t__tlittypedlist1 )
 
 and typed_subst_lit (string_x : string) f (lit_e : ('t, 't lit) typed) =
-  lit_e #-> (subst_lit string_x f)
+  (subst_lit string_x f) #-> lit_e
 
 let rec map_lit : 't 's. ('t -> 's) -> 't lit -> 's lit =
  fun f lit_e ->
   match lit_e with
   | AC constant0 -> AC constant0
-  | AVar _t_stringtyped0 -> AVar _t_stringtyped0 #=> f
+  | AVar _t_stringtyped0 -> AVar f #=> _t_stringtyped0
   | ATu _t__tlittypedlist0 ->
       ATu (List.map (fun e -> typed_map_lit f e) _t__tlittypedlist0)
   | AProj (_t__tlittyped0, int1) -> AProj (typed_map_lit f _t__tlittyped0, int1)
   | AAppOp (_t_stringtyped0, _t__tlittypedlist1) ->
       AAppOp
-        (_t_stringtyped0 #=> f, List.map (typed_map_lit f) _t__tlittypedlist1)
+        (f #=> _t_stringtyped0, List.map (typed_map_lit f) _t__tlittypedlist1)
 
 and typed_map_lit :
       't 's. ('t -> 's) -> ('t, 't lit) typed -> ('s, 's lit) typed =
- fun f lit_e -> lit_e #=> f #-> (map_lit f)
+ fun f lit_e -> f #=> ((map_lit f) #-> lit_e)
 
 let fv_lit_id e = fv_typed_id_to_id fv_lit e
 let typed_fv_lit_id e = fv_typed_id_to_id typed_fv_lit e
@@ -70,9 +69,6 @@ let mk_false = AC (B true)
 
 (** For Nt.t typed *)
 
-let eq_lit l1 l2 =
-  Sexplib.Sexp.equal (sexp_of_lit Nt.sexp_of_t l1) (sexp_of_lit Nt.sexp_of_t l2)
-
 let mk_lit_eq_lit ty lx ly =
   AAppOp (Op.typed_op_string ty, [ lx #: ty; ly #: ty ])
 
@@ -82,7 +78,7 @@ let mk_var_eq_var ty x y =
   AAppOp (Op.typed_op_string ty, [ lx #: ty; ly #: ty ])
 
 let mk_int_l1_eq_l2 l1 l2 =
-  AAppOp (Op.typed_op_string Nt.int_ty, [ l1 #: Nt.int_ty; l2 #: Nt.int_ty ])
+  AAppOp (Op.typed_op_string Nt.Ty_int, [ l1 #: Nt.Ty_int; l2 #: Nt.Ty_int ])
 
 let get_var_opt = function AVar x -> Some x | _ -> None
 
@@ -110,7 +106,7 @@ let rec get_non_unit_lit lit =
   (*   Printf.printf ">>>>> get_non_unit_lit: %s\n" *)
   (*     (Sexplib.Sexp.to_string (sexp_of_lit lit.x)) *)
   (* in *)
-  if Nt.eq Nt.unit_ty lit.ty then None
+  if Nt.equal_nt Nt.Ty_unit lit.ty then None
   else
     match lit.x with
     | AAppOp (_, args) -> (
@@ -124,4 +120,3 @@ let rec get_non_unit_lit lit =
     | _ -> Some lit.x
 
 let get_op_args lit = match lit with AAppOp (_, args) -> args | _ -> []
-let layout_sexp_lit lit = Sexplib.Sexp.to_string (sexp_of_lit Nt.sexp_of_t lit)

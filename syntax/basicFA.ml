@@ -152,7 +152,7 @@ module MakeBasicAutomata (C : CHARAC) = struct
     res ^ "\n"
 
   let layout_dfa (dfa : dfa) =
-    (* let open Zzdatatype.Datatype in *)
+    (* let open Zdatatype in *)
     let res = Printf.sprintf "\nstarts: %s\n" (Int.to_string dfa.start) in
     let res =
       Printf.sprintf "%sfinals: %s\n" res

@@ -20,7 +20,7 @@ module F (L : Lit.T) = struct
 
   let raw_to_string r = Sexplib.Sexp.to_string @@ sexp_of_regex r
 
-  (* open Sugar *)
+  (* open Zutils *)
   (* open Common *)
 
   let mk_regex_any = AnyA
@@ -29,7 +29,7 @@ module F (L : Lit.T) = struct
   let smart_seq (a1, a2) =
     match a1 with EmptyA -> EmptyA | EpsilonA -> a2 | _ -> SeqA (a1, a2)
 
-  (* open Sugar *)
+  (* open Zutils *)
 
   let compare l1 l2 = Sexplib.Sexp.compare (sexp_of_regex l1) (sexp_of_regex l2)
   let eq l1 l2 = 0 == compare l1 l2
@@ -110,7 +110,7 @@ module F (L : Lit.T) = struct
     | ComplementA _ -> LandA (AnyA, a)
     | SetMinusA (a1, a2) -> SetMinusA (be_singleton a1, be_singleton a2)
 
-  open Sugar
+  open Zutils
 
   let is_aligned (r1, r2) =
     match (has_len_aux r1, has_len_aux r2) with

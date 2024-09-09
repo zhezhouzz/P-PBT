@@ -1,5 +1,5 @@
 open Ast
-open Zzdatatype.Datatype
+open Zdatatype
 open Common
 
 let mk_spec_tyctx_one ctx = function

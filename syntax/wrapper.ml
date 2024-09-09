@@ -1,6 +1,6 @@
 open Ast
 open Common
-open Zzdatatype.Datatype
+open Zdatatype
 
 let instantiate_absty (x, ty) nt =
   let rec aux nt =
@@ -266,7 +266,7 @@ let mk_wrapper enum_names env (event_name, p_event_name) =
       (fun (x, _) ->
         let path, _ = match_field enum_names env p_event_type x in
         (* let () = *)
-        (*   _assert __FILE__ __LINE__ "check wrapper type match" (Nt.eq ty ty') *)
+        (*   _assert __FILE__ __LINE__ "check wrapper type match" (Nt.equal_nt ty ty') *)
         (* in *)
         (x, path))
       fields

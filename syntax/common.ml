@@ -7,7 +7,7 @@ module type AST = sig
 end
 
 open Ast
-open Zzdatatype.Datatype
+open Zdatatype
 
 let layout_states f s =
   List.split_by_comma f @@ List.of_seq @@ StateSet.to_seq s
@@ -18,7 +18,7 @@ let p_prim_types = [ "machine"; "any"; "string" ]
 
 let rec is_p_prim_type = function
   | Nt.Ty_bool | Nt.Ty_int -> true
-  | Nt.Ty_record l -> List.for_all (fun (_, ty) -> is_p_prim_type ty) l
+  | Nt.Ty_record l -> List.for_all (fun x -> is_p_prim_type x.ty) l
   | Nt.Ty_tuple l -> List.for_all is_p_prim_type l
   | Nt.Ty_constructor (name, [])
     when List.exists (String.equal name) p_prim_types ->
@@ -32,7 +32,7 @@ let rec is_p_prim_type = function
 let get_absty nt =
   let rec aux = function
     | Nt.Ty_bool | Nt.Ty_int | Nt.Ty_any -> []
-    | Nt.Ty_record l -> List.concat_map (fun (_, ty) -> aux ty) l
+    | Nt.Ty_record l -> List.concat_map (fun x -> aux x.ty) l
     | Nt.Ty_tuple l -> List.concat_map aux l
     | Nt.Ty_constructor (name, [])
       when List.exists (String.equal name) p_prim_types ->
@@ -40,6 +40,6 @@ let get_absty nt =
     | Nt.Ty_constructor (name, []) -> [ name ]
     | Nt.Ty_constructor (_, [ nt ]) -> aux nt
     | Nt.Ty_constructor (_, [ nt1; nt2 ]) -> aux nt1 @ aux nt2
-    | _ -> _die_with [%here] (Sexplib.Sexp.to_string @@ Nt.sexp_of_t nt)
+    | _ -> _die_with [%here] (Nt.layout nt)
   in
   List.slow_rm_dup String.equal (aux nt)

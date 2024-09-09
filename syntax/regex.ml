@@ -1,5 +1,5 @@
 open Ast
-open Zzdatatype.Datatype
+open Zdatatype
 
 let layout_sexp_regex regex =
   Sexplib.Sexp.to_string

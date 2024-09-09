@@ -1,5 +1,4 @@
 open Ast
-open Mtyped
 
 let map_ctx_typed (f : ('t, string) typed -> ('t, string) typed)
     (ctx_e : 't ctx) =

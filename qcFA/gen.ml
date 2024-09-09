@@ -5,7 +5,7 @@ open QCheck.Gen
 let space_list = [ 'a'; 'b'; 'c'; 'd' ]
 let space = CharSet.of_list space_list
 
-open Zzdatatype.Datatype
+open Zdatatype
 
 let rec n2set (l : 'a list) n =
   let res =

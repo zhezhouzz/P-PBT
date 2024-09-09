@@ -1,9 +1,10 @@
 open Ast
-open Mtyped
 open Lit
 
 let layout_sexp_prop regex =
   Sexplib.Sexp.to_string @@ sexp_of_prop (fun _ -> Sexplib.Sexp.unit) regex
+
+let typed_eq = equal_typed (fun _ _ -> true)
 
 let rec fv_prop (prop_e : 't prop) =
   match prop_e with
@@ -16,11 +17,11 @@ let rec fv_prop (prop_e : 't prop) =
   | Or _tproplist0 -> [] @ List.concat (List.map fv_prop _tproplist0)
   | Iff (_tprop0, _tprop1) -> ([] @ fv_prop _tprop1) @ fv_prop _tprop0
   | Forall { qv; body } ->
-      Zzdatatype.Datatype.List.substract (typed_eq String.equal)
+      Zdatatype.List.substract (typed_eq String.equal)
         ([] @ fv_prop body)
         [ qv ]
   | Exists { qv; body } ->
-      Zzdatatype.Datatype.List.substract (typed_eq String.equal)
+      Zdatatype.List.substract (typed_eq String.equal)
         ([] @ fv_prop body)
         [ qv ]
 
@@ -49,7 +50,7 @@ let rec subst_prop (string_x : string) f (prop_e : 't prop) =
       else Exists { qv; body = subst_prop string_x f body }
 
 and typed_subst_prop (string_x : string) f (prop_e : ('t, 't prop) typed) =
-  prop_e #-> (subst_prop string_x f)
+  (subst_prop string_x f) #-> prop_e
 
 let rec map_prop (f : 't -> 's) (prop_e : 't prop) =
   match prop_e with
@@ -62,11 +63,11 @@ let rec map_prop (f : 't -> 's) (prop_e : 't prop) =
   | And _tproplist0 -> And (List.map (map_prop f) _tproplist0)
   | Or _tproplist0 -> Or (List.map (map_prop f) _tproplist0)
   | Iff (_tprop0, _tprop1) -> Iff (map_prop f _tprop0, map_prop f _tprop1)
-  | Forall { qv; body } -> Forall { qv = qv #=> f; body = map_prop f body }
-  | Exists { qv; body } -> Exists { qv = qv #=> f; body = map_prop f body }
+  | Forall { qv; body } -> Forall { qv = f #=> qv; body = map_prop f body }
+  | Exists { qv; body } -> Exists { qv = f #=> qv; body = map_prop f body }
 
 and typed_map_prop (f : 't -> 's) (prop_e : ('t, 't prop) typed) =
-  prop_e #=> f #-> (map_prop f)
+  (map_prop f) #-> (f #=> prop_e)
 
 let fv_prop_id e = fv_typed_id_to_id fv_prop e
 let typed_fv_prop_id e = fv_typed_id_to_id typed_fv_prop e
@@ -85,17 +86,12 @@ let prop_force_typed_lit_opt prop =
 let get_cbool prop =
   match prop with Lit { x = AC (B b); _ } -> Some b | _ -> None
 
-let mk_true = Lit (AC (B true)) #: Nt.bool_ty
-let mk_false = Lit (AC (B false)) #: Nt.bool_ty
+let mk_true = Lit (AC (B true)) #: Nt.Ty_bool
+let mk_false = Lit (AC (B false)) #: Nt.Ty_bool
 let is_true p = match get_cbool p with Some true -> true | _ -> false
 let is_false p = match get_cbool p with Some false -> true | _ -> false
 
-let eq_prop p1 p2 =
-  Sexplib.Sexp.equal
-    (sexp_of_prop Nt.sexp_of_t p1)
-    (sexp_of_prop Nt.sexp_of_t p2)
-
-open Zzdatatype.Datatype
+open Zdatatype
 
 let unfold_and prop =
   let rec aux = function
@@ -104,7 +100,7 @@ let unfold_and prop =
     | prop :: l' -> prop :: aux l'
   in
   let l = aux prop in
-  List.slow_rm_dup eq_prop l
+  List.slow_rm_dup pr l
 
 let smart_and l =
   let l = unfold_and l in
@@ -169,7 +165,7 @@ let get_lits prop =
   (*   Printf.printf ">>>>> get_lits: %s\n" *)
   (*     (List.split_by_comma layout_sexp_lit lits) *)
   (* in *)
-  Zzdatatype.Datatype.List.slow_rm_dup eq_lit lits
+  Zdatatype.List.slow_rm_dup eq_lit lits
 
 let build_euf vars =
   let space = Hashtbl.create 10 in
@@ -194,8 +190,9 @@ let build_euf vars =
   let res =
     Hashtbl.fold
       (fun ty vars res ->
-        if List.length vars > 1 && not (Nt.eq ty (Nt.Ty_uninter "Bytes.t")) then
-          aux ty vars @ res
+        if
+          List.length vars > 1 && not (Nt.equal_nt ty (Nt.Ty_uninter "Bytes.t"))
+        then aux ty vars @ res
         else res)
       space []
   in

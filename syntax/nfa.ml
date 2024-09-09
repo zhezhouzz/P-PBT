@@ -42,7 +42,7 @@ module MakeAutomata (C : CHARACTER) = struct
       nfa init
 
   let layout_nfa nfa =
-    (* let open Zzdatatype.Datatype in *)
+    (* let open Zdatatype in *)
     let () =
       Printf.printf "starts: %s\n" (layout_states Int.to_string nfa.start)
     in
@@ -570,7 +570,7 @@ module MakeAutomata (C : CHARACTER) = struct
     | None -> _die [%here]
 
   let layout_dfa (dfa : dfa) =
-    (* let open Zzdatatype.Datatype in *)
+    (* let open Zdatatype in *)
     let res = Printf.sprintf "start: %s\n" (Int.to_string dfa.start) in
     let res =
       Printf.sprintf "%sfinals: %s\n" res
