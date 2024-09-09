@@ -4,8 +4,6 @@ open Lit
 let layout_sexp_prop regex =
   Sexplib.Sexp.to_string @@ sexp_of_prop (fun _ -> Sexplib.Sexp.unit) regex
 
-let typed_eq = equal_typed (fun _ _ -> true)
-
 let rec fv_prop (prop_e : 't prop) =
   match prop_e with
   | Lit _t__tlittyped0 -> [] @ typed_fv_lit _t__tlittyped0
@@ -17,11 +15,11 @@ let rec fv_prop (prop_e : 't prop) =
   | Or _tproplist0 -> [] @ List.concat (List.map fv_prop _tproplist0)
   | Iff (_tprop0, _tprop1) -> ([] @ fv_prop _tprop1) @ fv_prop _tprop0
   | Forall { qv; body } ->
-      Zdatatype.List.substract (typed_eq String.equal)
+      Zdatatype.List.substract (eq_typed String.equal)
         ([] @ fv_prop body)
         [ qv ]
   | Exists { qv; body } ->
-      Zdatatype.List.substract (typed_eq String.equal)
+      Zdatatype.List.substract (eq_typed String.equal)
         ([] @ fv_prop body)
         [ qv ]
 
@@ -100,7 +98,7 @@ let unfold_and prop =
     | prop :: l' -> prop :: aux l'
   in
   let l = aux prop in
-  List.slow_rm_dup pr l
+  List.slow_rm_dup eq_prop l
 
 let smart_and l =
   let l = unfold_and l in

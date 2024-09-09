@@ -6,13 +6,13 @@ open Regex
 open Constructor_declaration
 open Common
 
-type event_kind = Req | Resp | Hidden [@@deriving sexp]
+type event_kind = Req | Resp | Hidden [@@deriving sexp, show, eq, ord]
 
 type concrete_type =
   | CBaseType of { superty : Nt.nt; use_config : bool }
   | CEnumType of { enum_name : string; enum_elems : string list }
     (* enum type *)
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]
 
 let concrete_type_to_nt = function
   | CBaseType { superty; _ } -> superty
@@ -24,7 +24,7 @@ type client_field =
   | Axioms of string list
   | TypeConfigs of string list
   | Violation of string
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]
 
 type client_setting = {
   client_name : string;
@@ -34,7 +34,7 @@ type client_setting = {
   type_configs : string list;
   violation : string;
 }
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]
 
 type 't item =
   | MFieldAssign of { field : string; assignment : string }
@@ -43,7 +43,7 @@ type 't item =
   | MEventDecl of { ev : (Nt.nt, string) typed; event_kind : event_kind }
   | MRegex of { name : (Nt.nt, string) typed; automata : ('t, 't sevent) regex }
   | MClient of client_setting
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]
 
 let deparse_field = Sugar.spf "%s.%s"
 
@@ -88,7 +88,7 @@ type spec_tyctx = {
   reqresp_ctx : string Typectx.ctx;
   wrapper_ctx : ((Nt.nt, string) typed * (Nt.nt, string) typed) Typectx.ctx;
   abstract_tyctx : concrete_type Typectx.ctx;
-  event_tyctx : (string * Nt.nt) list Typectx.ctx;
+  event_tyctx : (Nt.nt, string) typed list Typectx.ctx;
   event_kindctx : event_kind Typectx.ctx;
   regex_tyctx : Nt.nt Typectx.ctx;
   tyctx : Nt.nt Typectx.ctx;

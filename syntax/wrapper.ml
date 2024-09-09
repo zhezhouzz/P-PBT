@@ -6,7 +6,7 @@ let instantiate_absty (x, ty) nt =
   let rec aux nt =
     match nt with
     | Nt.Ty_bool | Nt.Ty_int -> nt
-    | Nt.Ty_record l -> Nt.Ty_record (List.map (fun (x, nt') -> (x, aux nt')) l)
+    | Nt.Ty_record l -> Nt.Ty_record (List.map (( #=> ) aux) l)
     | Nt.Ty_tuple l -> Nt.Ty_tuple (List.map aux l)
     | Nt.Ty_constructor (name, []) when String.equal name x -> ty
     | Nt.Ty_constructor (_, []) -> nt
@@ -166,11 +166,11 @@ let match_field enum_names env p_event_type name =
     (* let () = Printf.printf "match_field: %s\n" (Nt.layout ty) in *)
     match ty with
     | Nt.Ty_record l -> (
-        match List.find_opt (fun (x, _) -> String.equal name x) l with
-        | Some (x, ty) -> Some ([ x ], ty)
+        match find_in_args name l with
+        | Some { x; ty } -> Some ([ x ], ty)
         | _ ->
             List.fold_left
-              (fun res (x, ty) ->
+              (fun res { x; ty } ->
                 match res with
                 | None ->
                     let* path, ty = aux ty in
@@ -263,12 +263,12 @@ let mk_wrapper enum_names env (event_name, p_event_name) =
   in
   let fields =
     List.map
-      (fun (x, _) ->
-        let path, _ = match_field enum_names env p_event_type x in
+      (fun x ->
+        let path, _ = match_field enum_names env p_event_type x.x in
         (* let () = *)
         (*   _assert __FILE__ __LINE__ "check wrapper type match" (Nt.equal_nt ty ty') *)
         (* in *)
-        (x, path))
+        (x.x, path))
       fields
   in
   (* let () = *)
@@ -335,7 +335,7 @@ let to_conversion_code (pcode, _, tab) =
     (List.split_by "" (fun x -> x) (StrMap.to_value_list strs))
 
 let tab_to_wrapper_ctx tab =
-  Typectx
+  ctx_from_list
     (List.map (fun (x, { original_event; decl; _ }) ->
          x #: (original_event, decl))
     @@ StrMap.to_kv_list tab)

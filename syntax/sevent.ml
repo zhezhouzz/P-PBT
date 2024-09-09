@@ -58,9 +58,8 @@ let subst_sevent_instance y z sevent =
 (* gather lits *)
 (** For Nt.t typed*)
 
-let mk_top_sevent (op : string) l =
+let mk_top_sevent (op : string) vs =
   (* let argsty = List.map snd @@ Nt.get_record_types ty in *)
-  let vs = List.map (fun (x, ty) -> x #: ty) l in
   (* let vs = vs_names (List.length argsty) in *)
   (* let vs = List.map (fun (x, ty) -> x #: ty) @@ List.combine vs argsty in *)
   (* let vs = (__server_feild #: server_type) :: vs in *)
@@ -77,11 +76,9 @@ type gathered_lits = {
 let gathered_lits_init () = { global_lits = []; local_lits = StrMap.empty }
 
 let gathered_rm_dup { global_lits; local_lits } =
-  let global_lits = List.slow_rm_dup Lit.eq_lit global_lits in
+  let global_lits = List.slow_rm_dup eq_lit global_lits in
   let local_lits =
-    StrMap.map
-      (fun (vs, lits) -> (vs, List.slow_rm_dup Lit.eq_lit lits))
-      local_lits
+    StrMap.map (fun (vs, lits) -> (vs, List.slow_rm_dup eq_lit lits)) local_lits
   in
   { global_lits; local_lits }
 
@@ -120,11 +117,6 @@ let gather_se { global_lits; local_lits } sevent =
       in
       let global_lits = global_lits @ glits in
       { global_lits; local_lits }
-
-let compare_se se1 se2 =
-  Sexplib.Sexp.compare
-    (sexp_of_sevent Nt.sexp_of_t se1)
-    (sexp_of_sevent Nt.sexp_of_t se2)
 
 let and_prop_to_se p = function
   | GuardEvent { phi; vs } -> GuardEvent { phi = smart_add_to p phi; vs }

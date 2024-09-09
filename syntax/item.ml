@@ -32,21 +32,17 @@ let mk_spec_tyctx_one ctx = function
   | MClient _ -> ctx
 
 let mk_spec_ctx (env, wrapper_ctx, reqresp_ctx) code =
-  let p_tyctx =
-    Typectx (List.map (fun (x, ty) -> x #: ty) @@ StrMap.to_kv_list env)
-  in
+  let p_tyctx = ctx_from_map env in
   let spec_ctx = List.fold_left mk_spec_tyctx_one init_spec_tyctx code in
   let abs_names =
     List.slow_rm_dup String.equal
-    @@ List.concat_map (fun l ->
-           List.concat_map (fun (_, nt) -> get_absty nt) l.ty)
+    @@ List.concat_map (fun l -> List.concat_map (fun x -> get_absty x.ty) l.ty)
     @@ ctx_to_list spec_ctx.event_tyctx
   in
   let abstract_tyctx =
-    match spec_ctx.abstract_tyctx with
-    | Typectx l ->
-        Typectx
-          (List.filter (fun x -> List.exists (String.equal x.x) abs_names) l)
+    filter_ctx_name
+      (fun x -> List.exists (String.equal x) abs_names)
+      spec_ctx.abstract_tyctx
   in
   { spec_ctx with abstract_tyctx; wrapper_ctx; reqresp_ctx; p_tyctx }
 
@@ -72,10 +68,10 @@ let get_real_op { wrapper_ctx; p_tyctx; _ } op =
   let ty =
     (* HACK: some p event doesn't return record type *)
     match _get_force [%here] p_tyctx real_op.x with
-    | Nt.Ty_record [ (_, Nt.Ty_constructor (name, [])) ]
+    | Nt.Ty_record [ { ty = Nt.Ty_constructor (name, []); _ } ]
       when String.equal "tLsn" name ->
         mk_p_abstract_ty "tLsn"
-    | Nt.Ty_record [ (_, Nt.Ty_bool) ] -> Nt.Ty_bool
+    | Nt.Ty_record [ { ty = Nt.Ty_bool; _ } ] -> Nt.Ty_bool
     | _ as t -> t
   in
   let real_op = real_op.x #: ty in

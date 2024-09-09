@@ -13,3 +13,5 @@ type 't prop =
   | Forall of { qv : (('t, string) typed[@bound]); body : 't prop }
   | Exists of { qv : (('t, string) typed[@bound]); body : 't prop }
 [@@deriving sexp, show, eq, ord]
+
+let eq_prop p1 p2 = equal_prop (fun _ _ -> true) p1 p2

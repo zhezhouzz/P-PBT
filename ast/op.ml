@@ -1,6 +1,7 @@
 open Sexplib.Std
 
-type op = PrimOp of string | DtConstructor of string [@@deriving sexp]
+type op = PrimOp of string | DtConstructor of string
+[@@deriving sexp, show, eq, ord]
 
 (* a string:
    1. is in builtin_primop, then is a builtin operator.

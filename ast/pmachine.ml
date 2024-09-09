@@ -15,7 +15,7 @@ type p_const =
   | PHalt
   | PError
   | PRandomBool
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]
 
 let p_infix_operator =
   [ "&&"; "||"; "-"; "+"; "=="; "!="; ">"; "<"; ">="; "<="; "*"; "\\"; "in" ]
@@ -71,7 +71,7 @@ type 't p_expr =
   | PBreak
   | PReturn of ('t, 't p_expr) typed
   | PPrintf of (string * ('t, 't p_expr) typed list)
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]
 
 open Sugar
 
@@ -416,17 +416,19 @@ type 't p_func = {
   local_vars : ('t, string) typed list;
   body : ('t, 't p_expr) typed;
 }
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]
 
-type state_label = Hot | Cold | Start [@@deriving sexp]
-type func_label = Plain | Entry | Exit | Listen of string [@@deriving sexp]
+type state_label = Hot | Cold | Start [@@deriving sexp, show, eq, ord]
+
+type func_label = Plain | Entry | Exit | Listen of string
+[@@deriving sexp, show, eq, ord]
 
 type 't p_state = {
   name : string;
   state_label : state_label list;
   state_body : (('t, func_label) typed * 't p_func) list;
 }
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]
 
 type 't p_machine_decl = {
   name : string;
@@ -434,7 +436,7 @@ type 't p_machine_decl = {
   local_funcs : (('t, string) typed * 't p_func) list;
   states : 't p_state list;
 }
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]
 
 type 't p_item =
   | PEnumDecl of (string * string list)
@@ -443,7 +445,7 @@ type 't p_item =
   | PEventDecl of (Nt.nt, string) typed
   | PGlobalFunc of ('t, string) typed * 't p_func
   | PPrimFuncDecl of ('t, string) typed
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]
 
 let p_expr_to_str expr =
   Sexplib.Sexp.to_string @@ sexp_of_p_expr (fun _ -> Sexplib.Sexp.unit) expr

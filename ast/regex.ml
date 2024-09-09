@@ -8,7 +8,7 @@ type q_in_regex =
   | RPi of Nt.nt
   | RForallC of Constant.constant
   | RExistsC of Constant.constant
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]
 
 type ('t, 'a) regex =
   | EmptyA
@@ -54,7 +54,7 @@ and ('t, 'a) regex_expr =
       rhs : ('t, 'a) regex_expr;
       body : ('t, 'a) regex;
     }
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]
 
 type 'c raw_regex =
   | Empty : 'c raw_regex
@@ -63,7 +63,7 @@ type 'c raw_regex =
   | Alt : 'c raw_regex * 'c raw_regex -> 'c raw_regex
   | Seq : 'c raw_regex * 'c raw_regex -> 'c raw_regex
   | Star : 'c raw_regex -> 'c raw_regex
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]
 
 let rec map_label_in_regex (f : 'a -> 'b) (regex : ('t, 'a) regex) :
     ('t, 'b) regex =
