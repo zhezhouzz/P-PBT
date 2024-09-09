@@ -12,4 +12,4 @@ type 't prop =
   | Iff of 't prop * 't prop
   | Forall of { qv : (('t, string) typed[@bound]); body : 't prop }
   | Exists of { qv : (('t, string) typed[@bound]); body : 't prop }
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]

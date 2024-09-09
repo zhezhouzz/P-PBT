@@ -7,4 +7,4 @@ type constant =
   | Tu of constant list
   | Dt of string * constant list
   | SetLiteral of constant list
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]

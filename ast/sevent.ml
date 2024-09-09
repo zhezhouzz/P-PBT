@@ -6,7 +6,7 @@ open Common
 type 't sevent =
   | GuardEvent of { vs : ('t, string) typed list; phi : 't prop }
   | EffEvent of { op : string; vs : ('t, string) typed list; phi : 't prop }
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]
 
 (* let vs_names_from_types tps = *)
 (*   let n = List.length tps in *)

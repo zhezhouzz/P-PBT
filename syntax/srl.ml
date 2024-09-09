@@ -14,9 +14,9 @@ module F (L : Lit.T) = struct
     | StarA of regex
     | ComplementA of regex
     | SetMinusA of regex * regex
-  [@@deriving sexp]
+  [@@deriving sexp, show, eq, ord]
 
-  type sfa = regex [@@deriving sexp]
+  type sfa = regex [@@deriving sexp, show, eq, ord]
 
   let raw_to_string r = Sexplib.Sexp.to_string @@ sexp_of_regex r
 
@@ -45,7 +45,8 @@ module F (L : Lit.T) = struct
     | ComplementA _ -> false
     | SetMinusA (a1, a2) -> eq a1 a2
 
-  type sfa_len = EmptySet | HasUniqLen of int | MayNoUniqLen [@@deriving sexp]
+  type sfa_len = EmptySet | HasUniqLen of int | MayNoUniqLen
+  [@@deriving sexp, show, eq, ord]
 
   let compare_sfa_len l1 l2 =
     Sexplib.Sexp.compare (sexp_of_sfa_len l1) (sexp_of_sfa_len l2)

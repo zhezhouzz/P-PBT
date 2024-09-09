@@ -8,4 +8,4 @@ type 't lit =
   | ATu of ('t, 't lit) typed list
   | AProj of ('t, 't lit) typed * int
   | AAppOp of ('t, string) typed * ('t, 't lit) typed list
-[@@deriving sexp]
+[@@deriving sexp, show, eq, ord]
