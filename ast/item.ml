@@ -1,7 +1,6 @@
 open Sexplib.Std
 open Zutils
 open Prop
-open Sevent
 open Regex
 open Constructor_declaration
 open Common

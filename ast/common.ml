@@ -2,6 +2,7 @@ let v_name = "v"
 let v_ret_name = "vret"
 
 open Zutils
+include Prop
 
 let str_eq_to_bv y x = match x with Some x -> String.equal x y | None -> false
 (* let vs_names n = List.init n (fun i -> spf "%s%i" "x_" i) *)

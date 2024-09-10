@@ -6,8 +6,8 @@ type q_in_regex =
   | RForall of Nt.nt
   | RExists of Nt.nt
   | RPi of Nt.nt
-  | RForallC of Constant.constant
-  | RExistsC of Constant.constant
+  | RForallC of constant
+  | RExistsC of constant
 [@@deriving sexp, show, eq, ord]
 
 type ('t, 'a) regex =
@@ -40,7 +40,7 @@ and ('t, 'a) regex_sugar =
 and ('t, 'a) regex_expr =
   (* eliminate by intrepret *)
   | RVar of ('t, string) typed
-  | RConst of Constant.constant
+  | RConst of constant
   | RRegex of ('t, 'a) regex
   | QFRegex of {
       qv : ((q_in_regex, string) typed[@bound]);

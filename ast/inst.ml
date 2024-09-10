@@ -1,4 +1,3 @@
-open Constant
 open Sexplib.Std
 open Zutils
 open Zdatatype

@@ -14,11 +14,11 @@
  (wrapped true)
  (modules
    common
-   op
-   constant
-   lit
-   prop
-   sevent
+   ; op
+   ; constant
+   ; lit
+   ; prop
+   ; sevent
    ; finiteAutomata
    regex
    ; qregex

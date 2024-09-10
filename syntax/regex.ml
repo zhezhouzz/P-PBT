@@ -21,7 +21,7 @@ let _subst_se name (m : ('t, 't sevent) regex_expr) se =
   (*     (layout_sexp_regex (Atomic se)) *)
   (* in *)
   match rexpr_to_lit m with
-  | Some lit -> Sevent.subst_sevent_instance name lit se
+  | Some lit -> subst_sevent_instance name lit se
   | None -> se
 
 let rec subst_regex regex name (m : ('t, 't sevent) regex_expr) =
@@ -104,8 +104,6 @@ let ses_to_regex = function
   | [] -> EmptyA
   | [ s ] -> Atomic s
   | ss -> MultiAtomic ss
-
-open Sevent
 
 (** eliminate syntax sugar *)
 
@@ -206,17 +204,17 @@ let gather_regex regex =
     | RepeatN (_, r) -> aux r m
     | EmptyA -> m
     | EpsilonA -> m
-    | Atomic se -> Sevent.gather_se m se
+    | Atomic se -> gather_se m se
     | LorA (t1, t2) -> aux t1 @@ aux t2 m
     | LandA (t1, t2) -> aux t1 @@ aux t2 m
     | SeqA (t1, t2) -> aux t1 @@ aux t2 m
     | StarA t -> aux t m
-    | MultiAtomic se -> List.fold_left Sevent.gather_se m se
+    | MultiAtomic se -> List.fold_left gather_se m se
     | DComplementA { atoms; body } ->
-        let m = List.fold_left Sevent.gather_se m atoms in
+        let m = List.fold_left gather_se m atoms in
         aux body m
   in
-  aux regex (Sevent.gathered_lits_init ())
+  aux regex (gathered_lits_init ())
 
 let lift_function e =
   let rec aux f r =

@@ -2,13 +2,11 @@ open Ast
 open OcamlParser
 open Parsetree
 open Zdatatype
-open To_id
-open To_constant
 
 let var_or_c_of_expr expr =
   match expr.pexp_desc with
   | Pexp_ident id -> RVar (longid_to_id id) #: None
-  | _ -> RConst (To_constant.expr_to_constant expr)
+  | _ -> RConst (expr_to_constant expr)
 
 let of_expr_aux label_of_expr expr =
   let parse_labels a =
@@ -24,7 +22,6 @@ let of_expr_aux label_of_expr expr =
   let rec aux expr =
     match expr.pexp_desc with
     | Pexp_fun (_, _, arg, expr) ->
-        let open To_notation in
         let q, qv = notation_of_expr arg in
         let body = aux expr in
         let qvty =
@@ -56,7 +53,7 @@ let of_expr_aux label_of_expr expr =
             let atoms = parse_labels a in
             MultiAtomic atoms
         | Some "repeat", [ a; b ] -> (
-            let lit = To_lit.lit_of_expr a in
+            let lit = lit_of_expr a in
             let r = aux b in
             match lit with
             | AVar x -> RExpr (Repeat (x.x, r))
@@ -76,7 +73,7 @@ let of_expr_aux label_of_expr expr =
         RExpr (RLet { lhs; rhs; body = aux body })
     | Pexp_sequence (a, b) -> SeqA (aux a, aux b)
     | Pexp_ident id -> (
-        let id = To_id.longid_to_id id in
+        let id = longid_to_id id in
         match id with
         | "epsilonA" -> EpsilonA
         | "emptyA" -> EmptyA
@@ -93,7 +90,7 @@ let of_expr label_of_expr expr =
   rty
 
 let pprint_var_or_c = function
-  | RConst c -> To_constant.layout_constant c
+  | RConst c -> layout_constant c
   | RVar x -> x.x
   | _ -> _die [%here]
 

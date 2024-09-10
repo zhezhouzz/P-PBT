@@ -1,9 +1,4 @@
 include Common
-include Op
-include Constant
-include Lit
-include Prop
-include Sevent
 
 (* include Typectx *)
 include Regex

@@ -1,9 +1,5 @@
 open Ast
 
-let compare_op a b = Sexplib.Sexp.compare (sexp_of_op a) (sexp_of_op b)
-let equal_op a b = Sexplib.Sexp.equal (sexp_of_op a) (sexp_of_op b)
-let compare_equal a b = Sexplib.Sexp.compare (sexp_of_op a) (sexp_of_op b)
-
 (* NOTE: there are several constructors cannot be parsed directly from the external files *)
 let dt_name_for_typectx = function
   | "()" -> "TT"

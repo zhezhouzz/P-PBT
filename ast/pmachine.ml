@@ -1,6 +1,5 @@
 open Sexplib.Std
 open Zutils
-open Constant
 open Common
 
 (** constant has types independent from type context *)

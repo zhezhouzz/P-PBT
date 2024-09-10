@@ -14,11 +14,11 @@
  (wrapped true)
  (modules
    common
-   op
-   constant
-   lit
-   prop
-   sevent
+   ; op
+   ; constant
+   ; lit
+   ; prop
+   ; sevent
    regex
    finiteAutomata
    minterm
@@ -30,4 +30,4 @@
    ast
  )
  (preprocess (pps ppx_optcomp ppx_compare ppx_sexp_conv ppx_inline_test ppx_assert ppx_deriving.show ppx_deriving.eq ppx_deriving.ord ppx_here))
- (libraries zutils myconfig))
+ (libraries zutils))
