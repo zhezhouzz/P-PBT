@@ -260,8 +260,7 @@ let typed_id_of_ocamlexpr expr =
   match x.x with
   | Var id -> id #: x.ty
   | _ ->
-      _failatwith __FILE__ __LINE__
-        (spf "die: %s" (Pprintast.string_of_expression expr))
+      _failatwith [%here] (spf "die: %s" (Pprintast.string_of_expression expr))
 
 let id_of_ocamlexpr expr = (typed_id_of_ocamlexpr expr).x
 let layout x = Pprintast.string_of_expression @@ expr_to_ocamlexpr x

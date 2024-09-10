@@ -221,9 +221,7 @@ module F (P : Predictable) = struct
           let res =
             if Float.abs c_t < 1e-3 then F
             else if Float.abs c_f < 1e-3 then T
-            else
-              _failatwith __FILE__ __LINE__
-                (spf "Bad Dt Result(%f, %f)" c_t c_f)
+            else _failatwith [%here] (spf "Bad Dt Result(%f, %f)" c_t c_f)
           in
           res
       | FastDT.Node { split; if_t; if_f } -> Node (split, aux if_t, aux if_f)

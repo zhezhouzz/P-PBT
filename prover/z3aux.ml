@@ -118,7 +118,7 @@ let z3expr_to_bool v =
 
 (* let layout_imp_version = function V1 -> "V1" | V2 -> "V2" *)
 
-(* open Zzdatatype.Datatype *)
+(* open Zdatatype *)
 
 (* let bound = 4 *)
 

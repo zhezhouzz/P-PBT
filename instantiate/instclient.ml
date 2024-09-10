@@ -21,8 +21,7 @@ let unify_multiple_qvs qvss =
   in
   match res with
   | None ->
-      _failatwith __FILE__ __LINE__
-        "the quantified varaibles of axioms should be unified"
+      _failatwith [%here] "the quantified varaibles of axioms should be unified"
   | Some res -> res
 
 let destruct_universal_qgrex =
@@ -160,14 +159,14 @@ let mk_clients_ctx (spec_tyctx : spec_tyctx) (rexpr_ctx : rexpr ctx)
              in
              let axiom_qvs = unify_multiple_qvs qvss in
              let axiom_world = mk_forall_world axiom_qvs in
-             let axiom = _smart_inter __FILE__ __LINE__ axioms in
+             let axiom = _smart_inter [%here] axioms in
              let violation_qvs, violation =
                destruct_universal_qgrex (_get_force [%here] rexpr_ctx violation)
              in
              let axiom' =
                List.fold_right
                  (fun (x, y) res -> subst_regex res x.x (RVar y))
-                 (_safe_combine __FILE__ __LINE__ axiom_qvs violation_qvs)
+                 (_safe_combine [%here] axiom_qvs violation_qvs)
                  axiom
              in
              let violation_world = mk_exists_world violation_qvs in

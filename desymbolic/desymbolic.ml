@@ -30,9 +30,7 @@ let models_lit tab lit =
   (* in *)
   match Hashtbl.find_opt tab lit.x with
   | Some b -> b
-  | None ->
-      _failatwith __FILE__ __LINE__
-        (spf "tab_models_lit(%s)" (layout_lit lit.x))
+  | None -> _failatwith [%here] (spf "tab_models_lit(%s)" (layout_lit lit.x))
 
 let models_prop m prop =
   let rec aux prop =

@@ -133,9 +133,9 @@ let iter_label_in_regex (type a t) (f : a -> unit) (regex : (t, a) regex) : unit
   let _ = map_label_in_regex f regex in
   ()
 
-let _smart_inter file line (l : ('a, 'b) regex list) =
+let _smart_inter loc (l : ('a, 'b) regex list) =
   match l with
-  | [] -> Sugar._failatwith file line "die"
+  | [] -> Sugar._failatwith loc "die"
   | hd :: tl -> List.fold_left (fun a b -> LandA (a, b)) hd tl
 
 let rec normalize_regex (regex : ('t, 'a) regex) : ('t, 'b) regex =

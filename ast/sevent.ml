@@ -11,7 +11,7 @@ type 't sevent =
 (* let vs_names_from_types tps = *)
 (*   let n = List.length tps in *)
 (*   let vs = vs_names n in *)
-(*   List.map (fun (x, ty) -> x #: ty) @@ _safe_combine __FILE__ __LINE__ vs tps *)
+(*   List.map (fun (x, ty) -> x #: ty) @@ _safe_combine [%here] vs tps *)
 
 (* let __server_feild = "dest" *)
 (* let server_type = Nt.Ty_constructor ("server", []) *)

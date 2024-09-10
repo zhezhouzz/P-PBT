@@ -1,7 +1,7 @@
 exception FailWithModel of string * Z3.Model.model
 
-let _failwithmodel file line msg model =
-  raise (FailWithModel (Printf.sprintf "[%s:%i] %s" file line msg, model))
+let _failwithmodel loc msg model =
+  raise (FailWithModel (Printf.sprintf "[%s:%i] %s" loc msg, model))
 
 let ctx =
   Z3.mk_context [ ("model", "true"); ("proof", "false"); ("timeout", "1999") ]

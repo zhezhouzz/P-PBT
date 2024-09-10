@@ -18,6 +18,15 @@ subst = ""
 regex = "Nt.mk_tuple"
 subst = "Nt.Ty_tuple"
 
+regex = "Ntopt"
+subst = "Nt"
+
+regex = r"__FILE__ __LINE__"
+subst = "[%here]"
+
+regex = r" file line "
+subst = " loc "
+
 walk_dir = sys.argv[1]
 tmp_path = "/tmp/.tmp"
 tmp_original_path = "/tmp/.tmp_original"

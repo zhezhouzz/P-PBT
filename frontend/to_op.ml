@@ -10,9 +10,9 @@ let string_to_op str =
   | Some op -> op
   | None -> _die_with [%here] "unknown operator of string"
 
-let _string_to_dt_op file line str =
+let _string_to_dt_op loc str =
   match string_to_op str with
   | DtConstructor op -> DtConstructor op
-  | _ -> _failatwith file line "is not data constructor"
+  | _ -> _failatwith loc "is not data constructor"
 
 let layout_op = function PrimOp str -> str | DtConstructor str -> str

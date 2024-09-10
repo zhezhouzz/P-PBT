@@ -42,8 +42,7 @@ let of_expr_aux label_of_expr expr =
         | Some "starA", [ e1 ] -> StarA (aux e1)
         | Some "not", [ e1 ] -> Extension (ComplementA (aux e1))
         | Some "mu", _ ->
-            _failatwith __FILE__ __LINE__
-              "the recursive automata are disallowed"
+            _failatwith [%here] "the recursive automata are disallowed"
         | Some "||", [ a; b ] -> LorA (aux a, aux b)
         | Some "-", [ a; b ] -> SyntaxSugar (SetMinusA (aux a, aux b))
         | Some "&&", [ a; b ] -> LandA (aux a, aux b)
@@ -63,7 +62,7 @@ let of_expr_aux label_of_expr expr =
             | AVar x -> RExpr (Repeat (x.x, r))
             | AC (I i) -> RepeatN (i, r)
             | _ ->
-                _failatwith __FILE__ __LINE__
+                _failatwith [%here]
                 @@ spf "unknown repeat %s" (Pprintast.string_of_expression expr)
             )
         | _, args ->

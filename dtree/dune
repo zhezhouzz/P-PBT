@@ -10,4 +10,5 @@
    FastDT
    dt
  )
+ (preprocess (pps ppx_here))
 )

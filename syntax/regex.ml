@@ -114,7 +114,7 @@ let rec desugar ctx regex =
   | RExpr (RRegex r) -> desugar ctx r
   | RExpr _ ->
       let () = Printf.printf "%s\n" (layout_sexp_regex regex) in
-      _failatwith __FILE__ __LINE__
+      _failatwith [%here]
         (spf "should be eliminated: %s" (layout_sexp_regex regex))
   | Extension r -> Extension (desugar_regex_extension ctx r)
   | SyntaxSugar (SetMinusA (r1, r2)) ->
@@ -126,8 +126,7 @@ let rec desugar ctx regex =
           (fun op_name ->
             match get_opt ctx.event_tyctx op_name with
             | None ->
-                _failatwith __FILE__ __LINE__
-                  (spf "event(%s) is not declared" op_name)
+                _failatwith [%here] (spf "event(%s) is not declared" op_name)
             | Some ty -> mk_top_sevent op_name ty)
           op_names
       in
@@ -166,7 +165,7 @@ let delimit_context (delimit_cotexnt_char : 'a list option * 'a -> 'a list)
   in
   let force_ctx = function
     | None ->
-        _failatwith __FILE__ __LINE__
+        _failatwith [%here]
           "the regex need to be quantified with a context of chars."
     | Some ctx -> ctx
   in

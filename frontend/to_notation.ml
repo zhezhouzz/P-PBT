@@ -37,8 +37,7 @@ let notation_of_expr arg =
         | Some "exists" -> EX
         | Some "pi" -> PI
         | Some _ ->
-            _failatwith __FILE__ __LINE__
-              "quantifier needs be [@forall] or [@exists]"
+            _failatwith [%here] "quantifier needs be [@forall] or [@exists]"
         (* | Some q -> Nt@#$@#$@$@$@.qt_of_string q *)
       in
       let arg =

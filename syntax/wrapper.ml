@@ -266,7 +266,7 @@ let mk_wrapper enum_names env (event_name, p_event_name) =
       (fun x ->
         let path, _ = match_field enum_names env p_event_type x.x in
         (* let () = *)
-        (*   _assert __FILE__ __LINE__ "check wrapper type match" (Nt.equal_nt ty ty') *)
+        (*   _assert [%here] "check wrapper type match" (Nt.equal_nt ty ty') *)
         (* in *)
         (x.x, path))
       fields

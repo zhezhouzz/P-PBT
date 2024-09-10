@@ -6,13 +6,13 @@ open Zutils
 let str_eq_to_bv y x = match x with Some x -> String.equal x y | None -> false
 (* let vs_names n = List.init n (fun i -> spf "%s%i" "x_" i) *)
 
-let _get_record_ty_fields file line ty =
-  match ty with Nt.Ty_record l -> l | _ -> _failatwith file line "die"
+let _get_record_ty_fields loc ty =
+  match ty with Nt.Ty_record l -> l | _ -> _failatwith loc "die"
 
 (* let vs_names_from_types tps = *)
 (*   let n = List.length tps in *)
 (*   let vs = vs_names n in *)
-(*   List.map (fun (x, ty) -> x #: ty) @@ _safe_combine __FILE__ __LINE__ vs tps *)
+(*   List.map (fun (x, ty) -> x #: ty) @@ _safe_combine [%here] vs tps *)
 
 (* for automata *)
 type state = int
