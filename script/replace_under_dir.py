@@ -18,14 +18,17 @@ subst = ""
 regex = "Nt.mk_tuple"
 subst = "Nt.Ty_tuple"
 
-regex = "Ntopt"
-subst = "Nt"
+# regex = "Ntopt"
+# subst = "Nt"
 
-regex = r"__FILE__ __LINE__"
-subst = "[%here]"
+# regex = r"__FILE__ __LINE__"
+# subst = "[%here]"
 
-regex = r" file line "
-subst = " loc "
+# regex = r" file line "
+# subst = " loc "
+
+# regex = r"Nt.eq "
+# subst = "Nt.equal_nt "
 
 walk_dir = sys.argv[1]
 tmp_path = "/tmp/.tmp"

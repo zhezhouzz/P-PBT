@@ -18,7 +18,7 @@ let infer_constant (c : p_const) =
 (*       match tys with *)
 (*       | [] -> _failatwith [%here] "empty set literal is not allowed" *)
 (*       | ty :: tys -> *)
-(*           if List.for_all (Nt.eq ty) tys then ty *)
+(*           if List.for_all (Nt.equal_nt ty) tys then ty *)
 (*           else *)
 (*             _failatwith [%here] "set contains multiple typed values" *)
 (*     in *)
