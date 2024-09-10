@@ -159,7 +159,7 @@ let read_sfa source_file () =
 let read_p_repo_aux source_path =
   let p_paths =
     List.filter (fun path ->
-        let postfix = List.last @@ String.split path ~on:'.' in
+        let postfix = List.last @@ Core.String.split path ~on:'.' in
         match postfix with "p" | "s" -> true | _ -> false)
     @@ dir_contents source_path
   in
