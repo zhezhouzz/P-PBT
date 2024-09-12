@@ -21,7 +21,7 @@
    ; sevent
    ; regex
    ; finiteAutomata
-   minterm
+   ; minterm
    constructor_declaration
    inst
    item

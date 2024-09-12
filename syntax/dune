@@ -14,19 +14,6 @@
  (wrapped true)
  (modules
    common
-   ; op
-   ; constant
-   ; lit
-   ; prop
-   ; sevent
-   ; finiteAutomata
-   ; regex
-   ; qregex
-   ; typectx
-   ; nfa
-   ; basicFA
-   ; finiteAutomata
-   ; minterm
    item
    inst
    pmachine
