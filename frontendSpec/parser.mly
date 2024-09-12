@@ -1,6 +1,7 @@
 %{
     open Past (* open Grammar *)
     open Syntax
+    open AutomataLibrary
 
     let _get {y; _} = y
          %}

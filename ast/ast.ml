@@ -1,8 +1,8 @@
 include Common
-include Regex
+(* include Regex *)
 
 (* include Nfa *)
-include FiniteAutomata
+(* include FiniteAutomata *)
 include Minterm
 include Constructor_declaration
 include Item

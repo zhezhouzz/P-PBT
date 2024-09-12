@@ -53,7 +53,7 @@ let layout_opt_item = function
   | MValDecl x -> spf "val %s: %s" x.x @@ Nt.layout x.ty
   | MRegex { name; automata } ->
       spf "spec %s = %s" name.x
-        (To_regex.layout layout_opt_ty layout_se automata)
+        (AutomataLibrary.layout layout_opt_ty layout_se automata)
   | MClient
       { client_name; event_scope; axioms; type_configs; violation; step_bound }
     ->
@@ -78,7 +78,7 @@ let layout_item = function
   | MValDecl x -> spf "val %s: %s" x.x @@ Nt.layout x.ty
   | MRegex { name; automata } ->
       spf "let[@regex] %s = %s" name.x
-        (To_regex.layout Nt.layout layout_se automata)
+        (AutomataLibrary.layout Nt.layout layout_se automata)
   | MClient
       { client_name; event_scope; axioms; type_configs; violation; step_bound }
     ->

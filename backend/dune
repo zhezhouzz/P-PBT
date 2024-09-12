@@ -4,7 +4,7 @@
  (wrapped true)
  (modules
    plang
-   automata
+   ; automata
    backend
  )
  (preprocess

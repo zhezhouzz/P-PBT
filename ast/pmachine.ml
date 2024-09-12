@@ -1,6 +1,7 @@
 open Sexplib.Std
 open Zutils
 open Common
+open AutomataLibrary
 
 (** constant has types independent from type context *)
 type p_const =

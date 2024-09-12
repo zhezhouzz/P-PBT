@@ -1,8 +1,8 @@
 open Ast
 open Zdatatype
 
-let layout_states f s =
-  List.split_by_comma f @@ List.of_seq @@ StateSet.to_seq s
+(* let layout_states f s = *)
+(*   List.split_by_comma f @@ List.of_seq @@ StateSet.to_seq s *)
 
 let layout_qv x = spf "(%s: %s)" x.x (Nt.layout x.ty)
 let layout_qvs = List.split_by " " layout_qv

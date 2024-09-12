@@ -1,4 +1,4 @@
-(* open Language *)
+open Zutils.Prop
 (* open Zzdatatype.Datatype *)
 
 let cheker = Prover.check_valid

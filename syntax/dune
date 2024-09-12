@@ -20,13 +20,13 @@
    ; prop
    ; sevent
    ; finiteAutomata
-   regex
+   ; regex
    ; qregex
    ; typectx
    ; nfa
-   basicFA
-   finiteAutomata
-   minterm
+   ; basicFA
+   ; finiteAutomata
+   ; minterm
    item
    inst
    pmachine
@@ -35,4 +35,4 @@
  )
  (preprocess
   (pps ppx_optcomp ppx_compare ppx_sexp_conv ppx_here))
- (libraries core ast dtree backend))
+ (libraries core ast backend))

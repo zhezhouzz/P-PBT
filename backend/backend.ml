@@ -1,2 +1,2 @@
-include Automata
+(* include Automata *)
 include Plang

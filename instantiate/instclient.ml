@@ -64,30 +64,30 @@ let mk_last_violate spec_tyctx reg =
   (* SeqA (reg, postfix) *)
   LandA (SeqA (reg, postfix), mk_complement reg)
 
-let regspec_to_sfa mode ctx m =
-  let vs, reg =
-    Desymbolic.(desymbolic_regspec mode ctx)
-      (fun (_, prop) -> Prover.check_sat_bool prop)
-      m
-  in
-  (* let () = Printf.printf " zz?: %s\n" @@ layout_symbolic_regex reg in *)
-  let module DFA = DesymFA in
-  let f (global_prop, bmap, reg) =
-    let fa = DFA.compile_regex_to_dfa reg in
-    (* let () = Pp.printf "\n@{<bold>To DFA:@}\n%s\n" (DFA.layout_dfa fa) in *)
-    let sfa = SFA.from_desym_dfa bmap fa in
-    (* let () = Pp.printf "\n@{<bold>Back To SFA:@}\n%s\n" (SFA.layout_dfa sfa) in *)
-    (global_prop, sfa)
-  in
-  (vs, List.map f reg)
+(* let regspec_to_sfa mode ctx m = *)
+(*   let vs, reg = *)
+(*     Desymbolic.(desymbolic_regspec mode ctx) *)
+(*       (fun (_, prop) -> Prover.check_sat_bool prop) *)
+(*       m *)
+(*   in *)
+(*   (\* let () = Printf.printf " zz?: %s\n" @@ layout_symbolic_regex reg in *\) *)
+(*   let module DFA = DesymFA in *)
+(*   let f (global_prop, bmap, reg) = *)
+(*     let fa = DFA.compile_regex_to_dfa reg in *)
+(*     (\* let () = Pp.printf "\n@{<bold>To DFA:@}\n%s\n" (DFA.layout_dfa fa) in *\) *)
+(*     let sfa = SFA.from_desym_dfa bmap fa in *)
+(*     (\* let () = Pp.printf "\n@{<bold>Back To SFA:@}\n%s\n" (SFA.layout_dfa sfa) in *\) *)
+(*     (global_prop, sfa) *)
+(*   in *)
+(*   (vs, List.map f reg) *)
 
 let to_sfa_client ctx client =
   let _, axiom =
-    regspec_to_sfa UnionFA ctx
+    Desymbolic.regspec_to_sfa UnionFA ctx.event_tyctx
       (get_qvs_from_world client.axiom_world, client.axiom)
   in
   let _, violation =
-    regspec_to_sfa OriginalFA ctx
+    Desymbolic.regspec_to_sfa OriginalFA ctx.event_tyctx
       (get_qvs_from_world client.violation_world, client.violation)
   in
   { client with axiom; violation }
@@ -172,7 +172,7 @@ let mk_clients_ctx (spec_tyctx : spec_tyctx) (rexpr_ctx : rexpr ctx)
              let violation_world = mk_exists_world violation_qvs in
              let () =
                List.iter print_qstrsfa @@ snd
-               @@ regspec_to_sfa OriginalFA spec_tyctx
+               @@ Desymbolic.regspec_to_sfa OriginalFA spec_tyctx.event_tyctx
                     ( get_qvs_from_world violation_world,
                       limit_with_scope violation )
              in

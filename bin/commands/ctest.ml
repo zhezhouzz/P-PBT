@@ -18,17 +18,17 @@ let test_compile_raw_regex_to_dfa f =
 let cmds =
   [
     ( "test-reg-fa-1",
-      test_compile_raw_regex_to_dfa QcFA.qc_test_compile_raw_regex_to_dfa_1 );
+      test_compile_raw_regex_to_dfa QcFa.qc_test_compile_raw_regex_to_dfa_1 );
     ( "test-reg-fa-2",
-      test_compile_raw_regex_to_dfa QcFA.qc_test_compile_raw_regex_to_dfa_2 );
+      test_compile_raw_regex_to_dfa QcFa.qc_test_compile_raw_regex_to_dfa_2 );
     ( "test-fa-minimalize",
-      test_compile_raw_regex_to_dfa QcFA.qc_test_fa_minimalize );
+      test_compile_raw_regex_to_dfa QcFa.qc_test_fa_minimalize );
     ( "test-fa-normalize",
-      test_compile_raw_regex_to_dfa QcFA.qc_test_fa_normalize );
-    ("test-fa-complete", test_compile_raw_regex_to_dfa QcFA.qc_test_fa_complete);
+      test_compile_raw_regex_to_dfa QcFa.qc_test_fa_normalize );
+    ("test-fa-complete", test_compile_raw_regex_to_dfa QcFa.qc_test_fa_complete);
     ( "test-fa-complement",
-      test_compile_raw_regex_to_dfa QcFA.qc_test_fa_complement );
+      test_compile_raw_regex_to_dfa QcFa.qc_test_fa_complement );
     ( "test-fa-intersection",
-      test_compile_raw_regex_to_dfa QcFA.qc_test_fa_intersection );
-    ("test-fa-union", test_compile_raw_regex_to_dfa QcFA.qc_test_fa_union);
+      test_compile_raw_regex_to_dfa QcFa.qc_test_fa_intersection );
+    ("test-fa-union", test_compile_raw_regex_to_dfa QcFa.qc_test_fa_union);
   ]

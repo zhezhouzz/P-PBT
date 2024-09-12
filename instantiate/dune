@@ -2,7 +2,7 @@
  (public_name automata_library.instantiate)
  (name instantiate)
  (wrapped true)
- (libraries language desymbolic core prover)
+ (libraries language core)
  (modules
    instspec
    instclient

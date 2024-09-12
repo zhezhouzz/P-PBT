@@ -1,5 +1,5 @@
 open Language
-open Normal_regex_typing
+open AutomataLibrary
 
 type t = Nt.t
 
@@ -14,7 +14,15 @@ let item_check (ctx : spec_tyctx) (e : t item) : t item =
   | MEventDecl { ev; event_kind } -> MEventDecl { ev; event_kind }
   | MValDecl x -> MValDecl x
   | MRegex { name; automata } ->
-      let automata = bi_symbolic_regex_check ctx automata in
+      let ctx' =
+        PropTypecheck.
+          {
+            regex_tyctx = ctx.regex_tyctx;
+            tyctx = ctx.tyctx;
+            event_tyctx = ctx.event_tyctx;
+          }
+      in
+      let automata = RegexTypecheck.bi_symbolic_regex_check ctx' automata in
       let name = name.x #: automata.ty in
       MRegex { name; automata = automata.x }
   | MClient

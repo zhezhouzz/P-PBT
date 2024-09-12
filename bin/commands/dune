@@ -7,13 +7,11 @@
   language
   ntypecheck
   ptypecheck
-  desymbolic
   dequantified
   instantiate
   frontSpec
   frontFuncP
   frontWrapper
-  qcFA
   symExplore
   )
  (modules

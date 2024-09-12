@@ -1,7 +1,7 @@
 open Sexplib.Std
 open Zutils
 open Prop
-open Regex
+open AutomataLibrary
 open Constructor_declaration
 open Common
 

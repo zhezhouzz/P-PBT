@@ -1,5 +1,9 @@
 open Ast
 open Common
+open Zdatatype
+
+let layout_states f s =
+  List.split_by_comma f @@ List.of_seq @@ StateSet.to_seq s
 
 module MakeC (C : CHARAC) = struct
   open C

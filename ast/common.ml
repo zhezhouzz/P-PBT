@@ -16,31 +16,31 @@ let _get_record_ty_fields loc ty =
 (*   List.map (fun (x, ty) -> x #: ty) @@ _safe_combine [%here] vs tps *)
 
 (* for automata *)
-type state = int
+(* type state = int *)
 
-let _default_init_state = 0
+(* let _default_init_state = 0 *)
 
-module StateSet = Set.Make (Int)
-module StateMap = Map.Make (Int)
+(* module StateSet = Set.Make (Int) *)
+(* module StateMap = Map.Make (Int) *)
 
-module type CHARAC = sig
-  include Map.OrderedType
+(* module type CHARAC = sig *)
+(*   include Map.OrderedType *)
 
-  val layout : t -> string
-  val delimit_cotexnt_char : t list option * t -> t list
-end
+(*   val layout : t -> string *)
+(*   val delimit_cotexnt_char : t list option * t -> t list *)
+(* end *)
 
-module type CHARACTER = sig
-  include CHARAC
+(* module type CHARACTER = sig *)
+(*   include CHARAC *)
 
-  type char_idx
+(*   type char_idx *)
 
-  val layout : t -> string
-  val init_char_map : unit -> char_idx
-  val add_char_to_map : char_idx -> t -> unit
-  val id2c : char_idx -> Int64.t -> t
-  val c2id : char_idx -> t -> Int64.t
-end
+(*   val layout : t -> string *)
+(*   val init_char_map : unit -> char_idx *)
+(*   val add_char_to_map : char_idx -> t -> unit *)
+(*   val id2c : char_idx -> Int64.t -> t *)
+(*   val c2id : char_idx -> t -> Int64.t *)
+(* end *)
 
 let mk_p_abstract_ty name = Nt.Ty_constructor (name, [])
 let mk_p_set_ty ty = Nt.Ty_constructor ("set", [ ty ])
