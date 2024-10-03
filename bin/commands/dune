@@ -6,13 +6,6 @@
   core_unix.sys_unix
   language
   ntypecheck
-  ptypecheck
-  dequantified
-  instantiate
-  frontSpec
-  frontFuncP
-  frontWrapper
-  symExplore
   )
  (modules
   caux

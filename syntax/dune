@@ -14,12 +14,12 @@
  (wrapped true)
  (modules
    common
-   item
-   inst
-   pmachine
-   wrapper
+   ; item
+   ; inst
+   ; pmachine
+   ; wrapper
    syntax
  )
  (preprocess
   (pps ppx_optcomp ppx_compare ppx_sexp_conv ppx_here))
- (libraries core ast backend))
+ (libraries core ast))

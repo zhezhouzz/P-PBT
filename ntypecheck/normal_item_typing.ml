@@ -1,41 +1,76 @@
 open Language
 open AutomataLibrary
 
-type t = Nt.t
+let init_env =
+  {
+    goal = None;
+    event_tyctx = emp;
+    gen_ctx = emp;
+    tyctx = emp;
+    event_rtyctx = emp;
+  }
 
-let constructor_declaration_mk_ (retty, { constr_name; argsty }) =
-  constr_name #: (Nt.construct_arr_tp (argsty, retty))
+let add_to_env env = function
+  | PrimDecl { name; nt } ->
+      { env with tyctx = add_to_right env.tyctx name #: nt }
+  | MsgNtDecl { generative; name; nt } ->
+      let l =
+        match nt with
+        | Nt.Ty_record l -> l
+        | Nt.Ty_unit -> []
+        | _ -> _die [%here]
+      in
+      let event_tyctx = add_to_right env.event_tyctx name #: l in
+      let gen_ctx = add_to_right env.gen_ctx name #: generative in
+      { env with event_tyctx; gen_ctx }
+  | MsgDecl _ -> env
+  | SynGoal _ -> env
+
+(* let mk_input_env env items = *)
+(*   let rec aux (event_tyctx, gen_ctx, tyctx, goal) = function *)
+(*     | PrimDecl { name; nt } -> *)
+(*         (event_tyctx, gen_ctx, add_to_right tyctx name #: nt, goal) *)
+(*     | MsgNtDecl { generative; name; nt } -> *)
+(*         let l = match nt with Nt.Ty_record l -> l | _ -> _die [%here] in *)
+(*         let event_tyctx = add_to_right event_tyctx name #: l in *)
+(*         let gen_ctx = add_to_right gen_ctx name #: generative in *)
+(*         (event_tyctx, gen_ctx, tyctx, goal) *)
+(*     | MsgDecl _ -> (event_tyctx, gen_ctx, tyctx, goal) *)
+(*     | SynGoal goal -> *)
+(*         let _ = *)
+(*           match goal with *)
+(*           | Some _ -> _die_with [%here] "multiple goals" *)
+(*           | _ -> () *)
+(*         in *)
+(*         (event_tyctx, gen_ctx, tyctx, Some goal) *)
+(*   in *)
+(*   let event_tyctx, gen_ctx, tyctx, goal = *)
+(*     List.fold_left aux (emp, emp, emp, None) items *)
+(*   in *)
+(*   let goal = *)
+(*     match goal with None -> _die_with [%here] "no goals" | Some goal -> goal *)
+(*   in *)
+(*   { goal; event_tyctx; gen_ctx; tyctx; event_rtyctx = emp } *)
 
 (* NOTE: the whole spec items are first-order *)
-let item_check (ctx : spec_tyctx) (e : t item) : t item =
-  match e with
-  | MFieldAssign { field; assignment } -> MFieldAssign { field; assignment }
-  | MAbstractType x -> MAbstractType x
-  | MEventDecl { ev; event_kind } -> MEventDecl { ev; event_kind }
-  | MValDecl x -> MValDecl x
-  | MRegex { name; automata } ->
-      let ctx' =
-        PropTypecheck.
-          {
-            regex_tyctx = ctx.regex_tyctx;
-            tyctx = ctx.tyctx;
-            event_tyctx = ctx.event_tyctx;
-          }
+let item_check env = function
+  | MsgDecl { name; haft } ->
+      let haft =
+        Normal_rty_typing.bi_haft_check env.event_tyctx env.tyctx haft
       in
-      let automata = RegexTypecheck.bi_symbolic_regex_check ctx' automata in
-      let name = name.x #: automata.ty in
-      MRegex { name; automata = automata.x }
-  | MClient
-      { client_name; event_scope; axioms; type_configs; violation; step_bound }
-    ->
-      MClient
-        {
-          client_name;
-          event_scope;
-          axioms;
-          type_configs;
-          violation;
-          step_bound;
-        }
+      { env with event_rtyctx = add_to_right env.event_rtyctx name #: haft }
+  | SynGoal goal -> (
+      match env.goal with
+      | Some _ -> _die_with [%here] "multiple goals"
+      | _ ->
+          let regex_ctx = mk_regex_ctx (env.event_tyctx, env.tyctx) in
+          let goal = _get_x @@ bi_symbolic_regex_check regex_ctx goal in
+          { env with goal = Some goal })
+  | _ -> env
 
-let struct_check ctx l = List.map (item_check ctx) l
+let struct_check env l =
+  let env = List.fold_left add_to_env env l in
+  let () = Printf.printf "%s\n" (layout_syn_env env) in
+  let l = List.map (locally_rename_item env.event_tyctx) l in
+  let env = List.fold_left item_check env l in
+  env
