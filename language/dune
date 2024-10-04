@@ -1,5 +1,5 @@
 (library
- (public_name automata_library.language)
+ (public_name haft.language)
  (name language)
  (wrapped false)
  (modules

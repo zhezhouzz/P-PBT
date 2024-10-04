@@ -1,7 +1,7 @@
 (lang dune 3.15)
 (using menhir 3.0)
 
-(name automata_library)
+(name haft)
 
 (generate_opam_files true)
 
@@ -17,7 +17,7 @@
 (documentation https://url/to/documentation)
 
 (package
- (name automata_library)
+ (name haft)
  (synopsis "A short synopsis")
  (description "A longer description")
  (depends ocaml dune)

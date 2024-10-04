@@ -25,14 +25,19 @@ let cty_of_expr expr =
   | _ -> _die_with [%here] (Pprintast.string_of_expression expr)
 
 let rec layout_haft = function
-  | RtyBase cty -> spf "{%s}" (layout_cty cty)
+  | RtyBase cty ->
+      if is_true cty.phi then Nt.layout cty.nt else spf "{%s}" (layout_cty cty)
   | RtyHAF { history; adding; future } ->
       spf "[%s][%s][%s]"
         (layout_symbolic_regex history)
         (layout_symbolic_regex adding)
         (layout_symbolic_regex future)
   | RtyArr { arg; argcty; retrty } ->
-      spf "(%s:{%s}) → %s" arg (layout_cty argcty) (layout_haft retrty)
+      let str =
+        if is_true argcty.phi then Nt.layout argcty.nt
+        else spf "{%s}" (layout_cty argcty)
+      in
+      spf "(%s:%s) → %s" arg str (layout_haft retrty)
   | RtyInter (haft1, haft2) ->
       spf "%s ⊓ %s" (layout_haft haft1) (layout_haft haft2)
 

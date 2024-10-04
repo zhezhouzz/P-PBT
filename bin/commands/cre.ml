@@ -32,9 +32,10 @@ let read_functional_p_file source_file () =
 
 let read_syn source_file () =
   let code = read_source_file source_file () in
-  let () = Printf.printf "%s\n" (layout_structure code) in
+  (* let () = Printf.printf "%s\n" (layout_structure code) in *)
   let env = Ntypecheck.(struct_check init_env code) in
   let () = Printf.printf "%s\n" (layout_syn_env env) in
+  let () = Synthesis.test env in
   ()
 
 let two_param message f =

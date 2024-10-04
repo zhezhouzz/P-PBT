@@ -41,11 +41,14 @@ type term =
   | CAssume of value
 [@@deriving show, eq, ord]
 
+type syn_goal = { qvs : (Nt.nt, string) typed list; prop : srl }
+[@@deriving show, eq, ord]
+
 type item =
   | PrimDecl of { name : string; nt : Nt.nt }
   | MsgNtDecl of { generative : bool; name : string; nt : Nt.nt }
   | MsgDecl of { name : string; haft : haft }
-  | SynGoal of srl
+  | SynGoal of syn_goal
 [@@deriving show, eq, ord]
 
 type syn_env = {
@@ -53,7 +56,7 @@ type syn_env = {
   gen_ctx : bool ctx;
   event_tyctx : (Nt.nt, string) typed list ctx;
   tyctx : Nt.t ctx;
-  goal : srl option;
+  goal : syn_goal option;
 }
 
 let mk_inter_type l =
@@ -72,6 +75,8 @@ let rec erase_rty = function
       let t1, t2 = map2 erase_rty (t1, t2) in
       let t = Nt._type_unify [%here] t1 t2 in
       t
+
+let mk_haf (history, adding, future) = RtyHAF { history; adding; future }
 
 (* module type AST = sig *)
 (*   type 'a ast [@@deriving sexp, show, eq, ord] *)

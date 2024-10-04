@@ -9,7 +9,7 @@
 ;    (:standard -unsafe -noassert -inline 100))))
 
 (library
- (public_name automata_library.syntax)
+ (public_name haft.syntax)
  (name syntax)
  (wrapped true)
  (modules

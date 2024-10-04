@@ -9,7 +9,7 @@
    (:standard -unsafe -noassert -inline 100))))
 
 (library
- (public_name automata_library.ast)
+ (public_name haft.ast)
  (name ast)
  (wrapped true)
  (modules

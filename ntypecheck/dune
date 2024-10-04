@@ -1,6 +1,6 @@
 (library
  (name ntypecheck)
- (public_name automata_library.ntypecheck)
+ (public_name haft.ntypecheck)
  (wrapped true)
  (libraries syntax language)
  (modules

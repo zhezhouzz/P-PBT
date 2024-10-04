@@ -1,11 +1,12 @@
 (library
  (name commands)
- (public_name automata_library.commands)
+ (public_name haft.commands)
  (libraries
   core
   core_unix.sys_unix
   language
   ntypecheck
+  synthesis
   )
  (modules
   caux

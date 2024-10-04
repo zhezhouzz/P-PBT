@@ -26,8 +26,6 @@ let layout_syn_env { event_rtyctx; gen_ctx; event_tyctx; tyctx; goal } =
   in
   let str =
     spf "%s\n    goal:\n%s\n" str
-      (match goal with
-      | None -> "none"
-      | Some srl -> AutomataLibrary.layout_symbolic_regex srl)
+      (match goal with None -> "none" | Some srl -> layout_syn_goal srl)
   in
   str

@@ -59,13 +59,14 @@ let item_check env = function
         Normal_rty_typing.bi_haft_check env.event_tyctx env.tyctx haft
       in
       { env with event_rtyctx = add_to_right env.event_rtyctx name #: haft }
-  | SynGoal goal -> (
+  | SynGoal { qvs; prop } -> (
       match env.goal with
       | Some _ -> _die_with [%here] "multiple goals"
       | _ ->
-          let regex_ctx = mk_regex_ctx (env.event_tyctx, env.tyctx) in
-          let goal = _get_x @@ bi_symbolic_regex_check regex_ctx goal in
-          { env with goal = Some goal })
+          let tyctx = add_to_rights env.tyctx qvs in
+          let regex_ctx = mk_regex_ctx (env.event_tyctx, tyctx) in
+          let prop = _get_x @@ bi_symbolic_regex_check regex_ctx prop in
+          { env with goal = Some { qvs; prop } })
   | _ -> env
 
 let struct_check env l =

@@ -1,0 +1,10 @@
+(library
+ (name synthesis)
+ (public_name haft.synthesis)
+ (wrapped true)
+ (libraries syntax language)
+ (modules
+  synthesis
+)
+(preprocess (pps ppx_here))
+)
