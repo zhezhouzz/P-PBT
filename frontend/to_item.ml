@@ -75,7 +75,8 @@ let layout_item = function
   | MsgNtDecl { generative; name; nt } ->
       spf "%s %s: %s" (if generative then "gen" else "obs") name (Nt.layout nt)
   | PrimDecl { name; nt } -> spf "val %s: %s" name (Nt.layout nt)
-  | MsgDecl { name; haft } -> spf "rty %s:\n  %s" name (layout_haft haft)
+  | MsgDecl { name; haft } ->
+      spf "rty %s:\n  %s" name (layout_haft layout_symbolic_regex haft)
   | SynGoal g -> spf "goal:\n  %s" (layout_syn_goal g)
 
 let layout_structure l = spf "%s\n" (List.split_by "\n" layout_item l)

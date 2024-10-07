@@ -9,33 +9,37 @@ val writeRsp : < va : int ; stat : bool > [@@obs]
 val commit : unit [@@obs]
 val abort : unit [@@obs]
 
-let readReq = (allA, ReadReq true, allA)
+let readReq = (allA, ReadReq true, [| GetReq true |])
 
-let getReq =
-  [|
-    (allA, GetReq true, ReadRsp true);
-    (starA (anyA - Commit true), GetReq true, parallel [| ReadRsp (va == -1) |]);
-  |]
+(* let getReq = *)
+(*   [| *)
+(*     (allA, GetReq true, [| ReadRsp true |]); *)
+(*     (starA (anyA - Commit true), GetReq true, [| ReadRsp (va == -1) |]); *)
+(*   |] *)
 
-let readRsp ?l:(x = (true : [%v: int])) = (allA, ReadRsp true, allA)
+let getReq = (starA (anyA - Commit true), GetReq true, [| ReadRsp (va == -1) |])
+let readRsp ?l:(x = (true : [%v: int])) = (allA, ReadRsp true, [||])
 
 let writeReq ?l:(x = (true : [%v: int])) =
-  (allA, WriteReq (va == x), parallel [| PutReq (va == x) |])
+  (allA, WriteReq (va == x), [| PutReq (va == x) |])
 
 let putReq ?l:(x = (true : [%v: int])) =
-  (allA, PutReq (va == x), parallel [| PutRsp (va == x) |])
+  (allA, PutReq (va == x), [| PutRsp (va == x) |])
 
 let putRsp =
   [|
     (fun ?l:(x = (true : [%v: int])) ?l:(s = (v : [%v: bool])) ->
       ( allA,
         PutRsp (va == x && stat == s),
-        parallel [| WriteRsp (va == x && stat == s); Commit true |] ));
+        [| WriteRsp (va == x && stat == s); Commit true |] ));
     (fun ?l:(x = (true : [%v: int])) ?l:(s = (not v : [%v: bool])) ->
       ( allA,
         PutRsp (va == x && stat == s),
-        parallel [| WriteRsp (va == x && stat == s); Abort true |] ));
+        [| WriteRsp (va == x && stat == s); Abort true |] ));
   |]
+
+let commit = (allA, Commit true, [||])
+let abort = (allA, Abort true, [||])
 
 let[@goal] readAfterWrite (x : int) (y : int) =
   not

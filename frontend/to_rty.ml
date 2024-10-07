@@ -24,22 +24,22 @@ let cty_of_expr expr =
   | [ { x; ty } ], phi when String.equal x default_v -> { nt = ty; phi }
   | _ -> _die_with [%here] (Pprintast.string_of_expression expr)
 
-let rec layout_haft = function
+let rec layout_haft f = function
   | RtyBase cty ->
       if is_true cty.phi then Nt.layout cty.nt else spf "{%s}" (layout_cty cty)
   | RtyHAF { history; adding; future } ->
-      spf "[%s][%s][%s]"
-        (layout_symbolic_regex history)
-        (layout_symbolic_regex adding)
-        (layout_symbolic_regex future)
+      spf "[%s][%s][%s]" (f history) (f adding) (f future)
+  | RtyHAParallel { history; adding_se; parallel } ->
+      spf "[%s][%s][| %s |]" (f history) (layout_se adding_se)
+        (List.split_by " " layout_se parallel)
   | RtyArr { arg; argcty; retrty } ->
       let str =
         if is_true argcty.phi then Nt.layout argcty.nt
         else spf "{%s}" (layout_cty argcty)
       in
-      spf "(%s:%s) → %s" arg str (layout_haft retrty)
+      spf "(%s:%s) → %s" arg str (layout_haft f retrty)
   | RtyInter (haft1, haft2) ->
-      spf "%s ⊓ %s" (layout_haft haft1) (layout_haft haft2)
+      spf "%s ⊓ %s" (layout_haft f haft1) (layout_haft f haft2)
 
 let rec haft_of_expr expr =
   match expr.pexp_desc with
@@ -57,9 +57,17 @@ let rec haft_of_expr expr =
       let arg = id_of_pattern vb.pvb_pat in
       let argcty = cty_of_expr vb.pvb_expr in
       RtyArr { argcty; arg; retrty }
-  | Pexp_tuple [ h; a; f ] ->
-      let history, adding, future = map3 symbolic_regex_of_expr (h, a, f) in
-      RtyHAF { history; adding; future }
+  | Pexp_tuple [ h; a; f ] -> (
+      match f.pexp_desc with
+      | Pexp_array es ->
+          let history = symbolic_regex_of_expr h in
+          let adding_se = Prop.sevent_of_expr a in
+          let parallel = List.map Prop.sevent_of_expr es in
+          RtyHAParallel { history; adding_se; parallel }
+      | _ ->
+          let history, adding = map2 symbolic_regex_of_expr (h, a) in
+          let future = symbolic_regex_of_expr f in
+          RtyHAF { history; adding; future })
   | Pexp_array ls -> mk_inter_type @@ List.map haft_of_expr ls
   | _ ->
       _die_with [%here]
@@ -72,6 +80,11 @@ let rec locally_rename_haft ctx = function
         map3 (locally_rename (ctx_to_list ctx)) (history, adding, future)
       in
       RtyHAF { history; adding; future }
+  | RtyHAParallel { history; adding_se; parallel } ->
+      let history = (locally_rename (ctx_to_list ctx)) history in
+      let adding_se = (locally_rename_se (ctx_to_list ctx)) adding_se in
+      let parallel = List.map (locally_rename_se (ctx_to_list ctx)) parallel in
+      RtyHAParallel { history; adding_se; parallel }
   | RtyArr { arg; argcty; retrty } ->
       RtyArr { arg; argcty; retrty = locally_rename_haft ctx retrty }
   | RtyInter (haft1, haft2) ->

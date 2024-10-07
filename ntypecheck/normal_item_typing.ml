@@ -52,13 +52,43 @@ let add_to_env env = function
 (*   in *)
 (*   { goal; event_tyctx; gen_ctx; tyctx; event_rtyctx = emp } *)
 
+let handle_reg env reg =
+  let op_names = List.map _get_x (ctx_to_list env.event_tyctx) in
+  let reg =
+    desugar env.event_tyctx (SyntaxSugar (CtxOp { op_names; body = reg }))
+  in
+  let reg = delimit_context delimit_cotexnt_se reg in
+  SFA.regex_to_raw reg
+
+let map_fa_haft f haft =
+  let rec aux t =
+    match t with
+    | RtyBase cty -> RtyBase cty
+    | RtyHAF { history; adding; future } ->
+        let history, adding, future = map3 f (history, adding, future) in
+        RtyHAF { history; adding; future }
+    | RtyHAParallel { history; adding_se; parallel } ->
+        let history = f history in
+        RtyHAParallel { history; adding_se; parallel }
+    | RtyArr { arg; argcty; retrty } ->
+        RtyArr { arg; argcty; retrty = aux retrty }
+    | RtyInter (t1, t2) -> RtyInter (aux t1, aux t2)
+  in
+  aux haft
+
+let handle_haft env haft = map_fa_haft (handle_reg env) haft
+
 (* NOTE: the whole spec items are first-order *)
 let item_check env = function
   | MsgDecl { name; haft } ->
       let haft =
         Normal_rty_typing.bi_haft_check env.event_tyctx env.tyctx haft
       in
-      { env with event_rtyctx = add_to_right env.event_rtyctx name #: haft }
+      {
+        env with
+        event_rtyctx =
+          add_to_right env.event_rtyctx name #: (handle_haft env haft);
+      }
   | SynGoal { qvs; prop } -> (
       match env.goal with
       | Some _ -> _die_with [%here] "multiple goals"

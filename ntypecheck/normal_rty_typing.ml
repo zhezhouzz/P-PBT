@@ -16,6 +16,12 @@ let rec bi_haft_check event_tyctx tyctx = function
           (history, adding, future)
       in
       RtyHAF { history; adding; future }
+  | RtyHAParallel { history; adding_se; parallel } ->
+      let regex_ctx = mk_regex_ctx (event_tyctx, tyctx) in
+      let history = _get_x @@ bi_symbolic_regex_check regex_ctx history in
+      let adding_se = Typecheck.bi_sevent_check regex_ctx adding_se in
+      let parallel = List.map (Typecheck.bi_sevent_check regex_ctx) parallel in
+      RtyHAParallel { history; adding_se; parallel }
   | RtyArr { arg; argcty; retrty } ->
       let argcty = bi_cty_check tyctx argcty in
       let tyctx = add_to_right tyctx arg #: (erase_cty argcty) in

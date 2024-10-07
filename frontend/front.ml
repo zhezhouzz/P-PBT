@@ -11,6 +11,8 @@ include To_item
 (*   include Nt *)
 (* end *)
 
+open AutomataLibrary
+
 let layout_syn_env { event_rtyctx; gen_ctx; event_tyctx; tyctx; goal } =
   let str = "" in
   let str = spf "%s\n    tyctx:\n%s\n" str (layout_ctx Nt.layout tyctx) in
@@ -22,7 +24,8 @@ let layout_syn_env { event_rtyctx; gen_ctx; event_tyctx; tyctx; goal } =
     spf "%s\n    gen_ctx:\n%s\n" str (layout_ctx string_of_bool gen_ctx)
   in
   let str =
-    spf "%s\n    event_rtyctx:\n%s\n" str (layout_ctx layout_haft event_rtyctx)
+    spf "%s\n    event_rtyctx:\n%s\n" str
+      (layout_ctx (layout_haft SFA.layout_raw_regex) event_rtyctx)
   in
   let str =
     spf "%s\n    goal:\n%s\n" str
