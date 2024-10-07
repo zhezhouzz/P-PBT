@@ -450,12 +450,20 @@ let charset_to_se loc s =
 
 let se_to_raw_regex se = MultiChar (SFA.CharSet.singleton se)
 
-let rec deductive_synthesis_reg env goal : SFA.raw_regex goal_env option =
+let clearn_trace trace =
+  List.filter_map
+    (function
+      | MultiChar c -> Some (charset_to_se [%here] c)
+      | Star _ -> None
+      | _ -> _die [%here])
+    trace
+
+let rec deductive_synthesis_reg env goal : SFA.C.t list goal_env option =
   let goals = normalize_goal env goal in
   let res = List.filter_map (deductive_synthesis_trace env) goals in
   match res with [] -> None | g :: _ -> Some g
 
-and deductive_synthesis_trace env goal : SFA.raw_regex goal_env option =
+and deductive_synthesis_trace env goal : SFA.C.t list goal_env option =
   let goal = map_goal raw_regex_to_trace goal in
   let () = layout_syn_trace_judgement goal in
   let subgoals =
@@ -487,7 +495,8 @@ and deductive_synthesis_trace env goal : SFA.raw_regex goal_env option =
         | Some goal -> handle goal subgoal)
       (Some goal) subgoals
   in
-  Some (map_goal (fun trs -> SFA.seq trs) goal)
+  let goal = map_goal clearn_trace res in
+  Some goal
 
 (* let rec aux res (pre, post) = *)
 (*   match post with *)
@@ -569,9 +578,132 @@ and backward env ({ qvs; global_prop; reg = pre, cur, post } as goal) =
       let goals = List.concat @@ List.filter_map handle rules in
       backtrack (backward env) goals
 
+let quantifier_elimination (qvs, gprop, qv, local_qvs, prop) =
+  let () = Printf.printf "remove qv: %s\n" (layout_qv qv) in
+  let () = Printf.printf "qvs: %s\n" (layout_qvs qvs) in
+  let () = Printf.printf "prop: %s\n" (layout_prop prop) in
+  let check_valid_feature lit =
+    let aux prop =
+      Prover.check_valid (smart_forall (qv :: qvs) @@ smart_implies gprop prop)
+    in
+    (not (aux @@ lit_to_prop lit)) && not (aux @@ Not (lit_to_prop lit))
+  in
+  let check_valid_pre prop =
+    not
+      (Prover.check_valid
+         (smart_forall (qv :: qvs) @@ smart_implies gprop (Not prop)))
+  in
+  let check_valid abd =
+    let p =
+      smart_forall (qv :: qvs)
+      @@ smart_exists local_qvs @@ smart_exists qvs
+      @@ smart_implies (smart_add_to abd gprop) prop
+    in
+    let () = Printf.printf "check: %s\n" @@ layout_prop p in
+    Prover.check_valid p
+  in
+  if check_valid mk_true then Some mk_true
+  else
+    let cs = get_consts prop in
+    let lits =
+      List.map (fun x -> (AVar x) #: x.ty) qvs
+      @ List.map (fun c -> (AC c) #: (constant_to_nt c)) cs
+    in
+    let lits = List.filter (fun lit -> Nt.equal_nt qv.ty lit.ty) lits in
+    let fvtab =
+      List.map (fun lit -> mk_lit_eq_lit qv.ty (AVar qv) lit.x) lits
+    in
+    let () =
+      Printf.printf "fvtab: %s\n" @@ List.split_by_comma layout_lit @@ fvtab
+    in
+    let fvs = List.init (List.length fvtab) (fun _ -> [ true; false ]) in
+    let fvs = List.choose_list_list fvs in
+    let fvs =
+      List.map
+        smart_and
+        #. (List.mapi (fun idx x ->
+                let lit = lit_to_prop @@ List.nth fvtab idx in
+                if x then lit else Not lit))
+        fvs
+    in
+    let fvs = List.filter check_valid fvs in
+    let () = Printf.printf "res: %s\n" @@ layout_prop (smart_or fvs) in
+    match fvs with [] -> None | _ -> Some (smart_or fvs)
+
+let rec to_top_cnf phi =
+  match phi with And ps -> List.concat_map to_top_cnf ps | _ -> [ phi ]
+
+let reverse_instantiation env { qvs; global_prop; reg = trace } =
+  let localize_se (vs, phi) =
+    let ps = to_top_cnf phi in
+    let lits =
+      List.map
+        (fun x ->
+          let res =
+            List.filter_map
+              (function
+                | Lit lit -> find_assignment_of_intvar lit.x x.x | _ -> None)
+              ps
+          in
+          match res with [] -> _die [%here] | lit :: _ -> (x, lit))
+        vs
+    in
+    let eq_phi =
+      List.map (fun (x, lit) -> mk_lit_eq_lit x.ty (AVar x) lit) lits
+    in
+    let phi =
+      List.fold_right
+        (fun (x, lit) res -> subst_prop_instance x.x lit res)
+        lits phi
+    in
+    (eq_phi, phi)
+  in
+  let rec handle (bvs, gprop, prog, qvs, prop, trace) =
+    match trace with
+    | [] -> ()
+    | se :: trace ->
+        let () = Printf.printf "bound vars: %s\n" (layout_qvs qvs) in
+        let () = Printf.printf "gprop: %s\n" (layout_prop gprop) in
+        let () =
+          Printf.printf "gprog: %s\n" (List.split_by_comma layout_se prog)
+        in
+        let () = Printf.printf "prop: %s\n" (layout_prop prop) in
+        let op, vs, phi = _get_sevent_fields [%here] se in
+        let fvs = fv_prop_id phi in
+        let vs' =
+          List.filter (fun x -> List.exists (String.equal x.x) fvs) vs
+        in
+        let qvs1, qvs2 =
+          List.partition (fun x -> List.exists (String.equal x.x) fvs) qvs
+        in
+        if _get_force [%here] env.gen_ctx op then
+          let aux rest =
+            match rest with
+            | [] -> mk_true
+            | qv :: qvs1 -> (
+                let p =
+                  quantifier_elimination (bvs, gprop, qv, qvs1 @ qvs2, prop)
+                in
+                match p with Some p -> p | None -> _die [%here])
+          in
+          let p = aux qvs1 in
+          handle
+            (bvs @ qvs1, smart_add_to p gprop, prog @ [ se ], qvs2, prop, trace)
+        else
+          let phi', phi = localize_se (vs', phi) in
+          handle
+            ( bvs @ qvs1,
+              smart_add_to phi gprop,
+              prog @ [ EffEvent { op; vs; phi } ],
+              qvs2,
+              prop,
+              trace )
+  in
+  handle ([], mk_true, [], qvs, global_prop, trace)
+
 let synthesize env goal =
-  let res = deductive_synthesis_reg env goal in
-  res
+  let* res = deductive_synthesis_reg env goal in
+  Some (reverse_instantiation env res)
 
 let test env =
   let _ = synthesize env @@ mk_synthesis_goal env in
