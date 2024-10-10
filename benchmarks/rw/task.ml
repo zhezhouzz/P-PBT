@@ -1,6 +1,6 @@
 val ( == ) : 'a -> 'a -> bool
 val readReq : unit [@@gen]
-val getReq : < va : int > [@@obs]
+val getReq : unit [@@obs]
 val readRsp : < va : int > [@@obs]
 val writeReq : < va : int > [@@gen]
 val putReq : < va : int > [@@obs]
@@ -30,12 +30,12 @@ let putRsp =
   [|
     (fun ?l:(x = (true : [%v: int])) ?l:(s = (v : [%v: bool])) ->
       ( allA,
-        PutRsp (va == x && stat == s),
-        [| WriteRsp (va == x && stat == s); Commit true |] ));
+        PutRsp (va == x && stat),
+        [| WriteRsp (va == x && stat); Commit true |] ));
     (fun ?l:(x = (true : [%v: int])) ?l:(s = (not v : [%v: bool])) ->
       ( allA,
-        PutRsp (va == x && stat == s),
-        [| WriteRsp (va == x && stat == s); Abort true |] ));
+        PutRsp (va == x && not stat),
+        [| WriteRsp (va == x && not stat); Abort true |] ));
   |]
 
 let commit = (allA, Commit true, [||])

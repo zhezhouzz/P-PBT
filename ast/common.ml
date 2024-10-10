@@ -10,6 +10,9 @@ let str_eq_to_bv y x = match x with Some x -> String.equal x y | None -> false
 let _get_record_ty_fields loc ty =
   match ty with Nt.Ty_record l -> l | _ -> _failatwith loc "die"
 
+let rename_qv x = (Rename.unique x.x) #: x.ty
+let name_in_qvs name l = List.exists (fun x -> String.equal x.x name) l
+
 (* let vs_names_from_types tps = *)
 (*   let n = List.length tps in *)
 (*   let vs = vs_names n in *)

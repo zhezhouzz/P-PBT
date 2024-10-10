@@ -5,7 +5,7 @@ include Common
 (* include To_inst *)
 include To_rty
 include To_item
-
+include To_term
 (* module Nt = struct *)
 (*   include Nt.T *)
 (*   include Nt *)

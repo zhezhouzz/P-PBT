@@ -1,9 +1,8 @@
 open Language
-open AutomataLibrary
 
 type sregex = Nt.t sevent raw_regex
 
-type 'a goal_env = {
+type 'a sgoal = {
   qvs : (Nt.t, string) typed list;
   global_prop : Nt.t prop;
   reg : 'a;
@@ -12,20 +11,6 @@ type 'a goal_env = {
 let map_goal f { qvs; global_prop; reg } = { qvs; global_prop; reg = f reg }
 
 open Zdatatype
-
-type cur = { op : string; vs : (Nt.t, string) typed list; phi : Nt.t prop }
-[@@deriving sexp, show, eq, ord]
-
-let normalize_regex (rawreg : DesymFA.raw_regex) =
-  (* let () = Printf.printf "Desym Reg: %s\n" (layout_desym_regex goal.reg) in *)
-  (* let () = *)
-  (*   Printf.printf "Desym Raw Reg%s\n" (DesymFA.layout_raw_regex rawreg) *)
-  (* in *)
-  (* let () = Printf.printf "%s\n" (DesymFA.layout_dfa fa) in *)
-  let open DesymFA in
-  dfa_to_reg @@ minimize @@ compile_raw_regex_to_dfa rawreg
-
-let is_empty_raw_regex = function Empty -> true | _ -> false
 
 let mk_synthesis_goal (env : syn_env) =
   let qvs, prop =
@@ -45,7 +30,6 @@ let mk_synthesis_goal (env : syn_env) =
   let reg = delimit_context delimit_cotexnt_se reg in
   let () = Printf.printf "Original Reg: %s\n" (layout_symbolic_regex reg) in
   let goal = { qvs; global_prop = mk_true; reg = SFA.regex_to_raw reg } in
-  (* let reg = SFA.regex_to_raw reg in *)
   goal
 (* (rctx, reg) *)
 
@@ -58,24 +42,21 @@ let layout_planing_judgement goal f =
 let layout_syn_reg_judgement goal =
   layout_planing_judgement goal SFA.layout_raw_regex
 
-let layout_syn_trace_judgement goal =
-  layout_planing_judgement goal SFA.omit_layout_symbolic_trace
+let layout_syn_plan_judgement goal = layout_planing_judgement goal Plan.layout
 
 let layout_syn_back_judgement goal =
-  (* let open SFA in *)
-  layout_planing_judgement goal (fun (pre, { op; vs; phi }, post) ->
-      spf "back [%s] %s [%s]"
-        (SFA.omit_layout_symbolic_trace pre)
-        (layout_se (EffEvent { op; vs; phi }))
-        (SFA.omit_layout_symbolic_trace post))
+  let open Plan in
+  layout_planing_judgement goal (fun (pre, cur, post) ->
+      spf "back [%s] %s [%s]" (omit_layout pre) (layout_elem cur)
+        (omit_layout post))
 
-let layout_syn_tmp_judgement goal =
-  (* let open SFA in *)
-  layout_planing_judgement goal (fun (pre, se, post) ->
-      spf "tmp [%s] %s [%s]"
-        (SFA.omit_layout_symbolic_trace pre)
-        (layout_se se)
-        (SFA.omit_layout_symbolic_trace post))
+(* let layout_syn_tmp_judgement goal = *)
+(*   (\* let open SFA in *\) *)
+(*   layout_planing_judgement goal (fun (pre, se, post) -> *)
+(*       spf "tmp [%s] %s [%s]" *)
+(*         (SFA.omit_layout_symbolic_trace pre) *)
+(*         la *)
+(*         (SFA.omit_layout_symbolic_trace post)) *)
 
 (* let layout_planing_judgement goal = *)
 (*   let ctx_str = *)
@@ -90,6 +71,21 @@ let layout_syn_tmp_judgement goal =
 (*   (\* let reg_str = DesymFA.layout_raw_regex res in *\) *)
 (*   spf "%s|- %s" ctx_str ".." *)
 
+let build_fvtab lits =
+  (* Remove boolean constants *)
+  let lits =
+    List.filter (function { x = AC (B _); _ } -> false | _ -> true) lits
+  in
+  let bvars, lits =
+    List.partition
+      (function
+        | { x = AVar x; _ } when Nt.equal_nt x.ty Nt.Ty_bool -> true
+        | _ -> false)
+      lits
+  in
+  let bvars = List.map _get_x bvars in
+  bvars @ build_euf lits
+
 [@@@warning "-27"]
 [@@@warning "-26"]
 
@@ -98,62 +94,29 @@ let backtrack f l =
     (fun res x -> match res with Some _ -> res | None -> f x)
     None l
 
-let raw_reg_map f reg =
-  let rec aux = function
-    | Empty -> Empty
-    | Eps -> Eps
-    | MultiChar cs -> MultiChar (f cs)
-    | Alt (r1, r2) -> Alt (aux r1, aux r2)
-    | Inters (r1, r2) -> Inters (aux r1, aux r2)
-    | Comple (cs, r2) -> Comple (f cs, aux r2)
-    | Seq rs -> Seq (List.map aux rs)
-    | Star r -> Star (aux r)
-  in
-  aux reg
+let raw_regex_to_trace = function Seq l -> l | _ -> _die [%here]
 
-let unify_se cs =
+let charset_to_se loc s =
   let open SFA in
-  let m =
-    CharSet.fold
-      (fun se m ->
-        match se with
-        | GuardEvent _ -> _die [%here]
-        | EffEvent { op; vs; phi } ->
-            StrMap.update op
-              (function
-                | None -> Some (vs, phi)
-                | Some (vs', phi') -> Some (vs', smart_add_to phi phi'))
-              m)
-      cs StrMap.empty
-  in
-  StrMap.fold
-    (fun op (vs, phi) -> CharSet.add (EffEvent { op; vs; phi }))
-    m CharSet.empty
+  match List.of_seq @@ CharSet.to_seq s with [ x ] -> x | _ -> _die loc
 
-let rec unify_sregex reg =
-  match reg with
-  | Empty | Eps -> reg
-  | MultiChar cs -> MultiChar (unify_se cs)
-  | Alt (r1, r2) -> Alt (unify_sregex r1, unify_sregex r2)
-  | Inters (r1, r2) -> Inters (unify_sregex r1, unify_sregex r2)
-  | Comple (cs, r2) -> Comple (unify_se cs, unify_sregex r2)
-  | Seq rs -> Seq (List.map unify_sregex rs)
-  | Star r -> Star (unify_sregex r)
+let se_to_raw_regex se = MultiChar (SFA.CharSet.singleton se)
 
-let divide_charset_by_op cs =
-  let open DesymFA in
-  let m =
-    CharSet.fold
-      (fun (op, id) ->
-        StrMap.update op (function
-          | None -> Some (StateSet.singleton id)
-          | Some s -> Some (StateSet.add id s)))
-      cs StrMap.empty
-  in
-  let add_op op s =
-    StateSet.fold (fun id -> CharSet.add (op, id)) s CharSet.empty
-  in
-  StrMap.fold (fun op m res -> add_op op m :: res) m []
+let raw_regex_to_plan_elem r =
+  let open SFA in
+  let r = unify_raw_regex r in
+  match r with
+  | MultiChar cs ->
+      let se = charset_to_se [%here] cs in
+      let op, vs, phi = _get_sevent_fields [%here] se in
+      PlanSe { op; vs; phi }
+  | Star (MultiChar cs) -> PlanStarInv cs
+  | Star r ->
+      let () =
+        Printf.printf "Not a star:\n %s\n" (show_raw_regex (fun _ _ -> ()) r)
+      in
+      _die [%here]
+  | Seq _ | Empty | Eps | Alt _ | Inters _ | Comple _ -> _die [%here]
 
 let normalize_goal env { qvs; global_prop = old_global_prop; reg } =
   let checker (_, prop) =
@@ -168,16 +131,20 @@ let normalize_goal env { qvs; global_prop = old_global_prop; reg } =
   let goals =
     List.concat_map
       (fun (global_prop, backward_maping, reg) ->
-        let reg = normalize_regex @@ regex_to_raw reg in
+        (* let () = *)
+        (*   Printf.printf "reg: %s\n" (layout_raw_regex (regex_to_raw reg)) *)
+        (* in *)
+        let reg = normalize_desym_regex @@ regex_to_raw reg in
         if is_empty_raw_regex reg then []
         else
           let unf =
-            DesymFA.raw_regex_to_union_normal_form divide_charset_by_op reg
+            DesymFA.raw_regex_to_union_normal_form unify_charset_by_op reg
           in
           let unf = List.map (List.map (raw_reg_map backward_maping)) unf in
           let unf =
             List.map
-              (fun l -> { qvs; global_prop; reg = unify_sregex @@ seq l })
+              (fun l ->
+                { qvs; global_prop; reg = List.map raw_regex_to_plan_elem l })
               unf
           in
           unf)
@@ -194,54 +161,6 @@ let mk_cur loc r =
       | [ EffEvent { op; vs; phi } ] -> { op; vs; phi }
       | _ -> _die loc)
   | _ -> _die loc
-
-let subst_cty (name, lit) { nt; phi } =
-  { nt; phi = subst_prop_instance name lit phi }
-
-let subst_raw_regex f r =
-  let rec aux r =
-    match r with
-    | Empty | Eps -> r
-    | MultiChar cs -> MultiChar (f cs)
-    | Alt (r1, r2) -> Alt (aux r1, aux r2)
-    | Inters (r1, r2) -> Inters (aux r1, aux r2)
-    | Seq l -> Seq (List.map aux l)
-    | Star r -> Star (aux r)
-    | Comple (cs, r) -> Comple (f cs, aux r)
-  in
-  aux r
-
-let subst_raw_sregex (name, lit) r =
-  subst_raw_regex (SFA.CharSet.map (subst_sevent_instance name lit)) r
-
-let subst_haft (name, lit) t =
-  let rec aux = function
-    | RtyBase cty -> RtyBase (subst_cty (name, lit) cty)
-    | RtyHAF { history; adding; future } ->
-        let history, adding, future =
-          map3 (subst_raw_sregex (name, lit)) (history, adding, future)
-        in
-        RtyHAF { history; adding; future }
-    | RtyHAParallel { history; adding_se; parallel } ->
-        let history = subst_raw_sregex (name, lit) history in
-        let adding_se = subst_sevent_instance name lit adding_se in
-        let parallel = List.map (subst_sevent_instance name lit) parallel in
-        RtyHAParallel { history; adding_se; parallel }
-    | RtyArr { arg; argcty; retrty } ->
-        RtyArr
-          { arg; argcty = subst_cty (name, lit) argcty; retrty = aux retrty }
-    | RtyInter (t1, t2) -> RtyInter (aux t1, aux t2)
-  in
-  aux t
-
-let rec fresh_haft t =
-  match t with
-  | RtyBase _ | RtyHAF _ | RtyHAParallel _ -> t
-  | RtyArr { arg; argcty; retrty } ->
-      let arg' = Rename.unique arg in
-      let retrty = subst_haft (arg, AVar arg' #: argcty.nt) retrty in
-      RtyArr { arg = arg'; argcty; retrty }
-  | RtyInter (t1, t2) -> RtyInter (fresh_haft t1, fresh_haft t2)
 
 let rec filter_rule_by_future op = function
   | RtyHAParallel { parallel; adding_se; history } -> (
@@ -280,32 +199,6 @@ let select_rule_by_adding env op =
   | None -> _die [%here]
   | Some haft -> haft_to_triple @@ fresh_haft haft
 
-let smart_forall qvs prop =
-  List.fold_right (fun qv body -> Forall { qv; body }) qvs prop
-
-let smart_exists qvs prop =
-  List.fold_right (fun qv body -> Exists { qv; body }) qvs prop
-
-let rec get_consts_from_lit = function
-  | AAppOp (_, args) -> List.concat_map get_consts_from_typed_lit args
-  | AC c -> [ c ]
-  | _ -> []
-
-and get_consts_from_typed_lit lit = get_consts_from_lit lit.x
-
-let get_consts prop =
-  let lits = get_lits prop in
-  let cs = List.concat_map get_consts_from_lit lits in
-  List.slow_rm_dup equal_constant cs
-
-let lit_to_nt = function
-  | AC c -> constant_to_nt c
-  | AAppOp (op, args) -> snd @@ Nt.destruct_arr_tp op.ty
-  | AVar x -> x.ty
-  | _ -> _die [%here]
-
-let lit_to_prop lit = Lit lit #: (lit_to_nt lit)
-
 let se_to_cur loc se =
   let op, vs, phi = _get_sevent_fields loc se in
   { op; vs; phi }
@@ -340,7 +233,7 @@ let abduction_prop (qvs, local_vs, gprop, prop) =
       List.map (fun x -> (AVar x) #: x.ty) qvs
       @ List.map (fun c -> (AC c) #: (constant_to_nt c)) cs
     in
-    let fvtab = build_euf lits in
+    let fvtab = build_fvtab lits in
     (* let () = *)
     (*   Printf.printf "fvtab: %s\n" @@ List.split_by_comma layout_lit @@ fvtab *)
     (* in *)
@@ -367,25 +260,15 @@ let abduction ({ qvs; global_prop; _ } as goal) args (vs, cur_phi, phi) =
   let gprop = smart_add_to global_prop gprop in
   abduction_prop (qvs, vs, gprop, prop)
 
-let parallel_interleaving l =
-  let l = None :: List.map (fun x -> Some x) l in
-  let l = List.permutation l in
-  let rec aux pre = function
-    | [] -> (pre, [])
-    | None :: res -> (pre, List.filter_map (fun x -> x) res)
-    | Some x :: res -> aux (pre @ [ x ]) res
-  in
-  List.map (aux []) l
-
 let mk_raw_all env =
   let l =
     List.map (fun x -> EffEvent { op = x.x; vs = x.ty; phi = mk_true })
     @@ ctx_to_list env.event_tyctx
   in
-  if List.length l == 0 then _die [%here] else MultiChar (SFA.CharSet.of_list l)
+  if List.length l == 0 then _die [%here] else SFA.CharSet.of_list l
 
 let parallel_interleaving_to_trace env l =
-  let all = Star (mk_raw_all env) in
+  let all = Star (MultiChar (mk_raw_all env)) in
   all
   :: List.concat_map (fun r -> [ MultiChar (SFA.CharSet.singleton r); all ]) l
 
@@ -398,34 +281,34 @@ let inter_trace env { qvs; global_prop; reg = tr1, tr2 } =
   let reg = Inters (r1, r2) in
   normalize_goal env { qvs; global_prop; reg }
 
-let single_insert_into_trace se trace =
-  let rec aux (res, pre) = function
-    | [] -> res
-    | Star r :: rest ->
-        aux
-          ( ( pre @ [ Star r ],
-              [ MultiChar (SFA.CharSet.singleton se) ],
-              [ Star r ] @ rest )
-            :: res,
-            pre @ [ Star r ] )
-          rest
-    | MultiChar cs :: rest -> aux (res, pre @ [ MultiChar cs ]) rest
-    | _ -> _die [%here]
-  in
-  aux ([], []) trace
+(* let single_insert_into_trace se trace = *)
+(*   let rec aux (res, pre) = function *)
+(*     | [] -> res *)
+(*     | Star r :: rest -> *)
+(*         aux *)
+(*           ( ( pre @ [ Star r ], *)
+(*               [ MultiChar (SFA.CharSet.singleton se) ], *)
+(*               [ Star r ] @ rest ) *)
+(*             :: res, *)
+(*             pre @ [ Star r ] ) *)
+(*           rest *)
+(*     | MultiChar cs :: rest -> aux (res, pre @ [ MultiChar cs ]) rest *)
+(*     | _ -> _die [%here] *)
+(*   in *)
+(*   aux ([], []) trace *)
 
-let rec insert_into_trace ses trace =
-  match ses with
-  | [] -> [ trace ]
-  | [ se ] ->
-      List.map (fun (a, b, c) -> a @ b @ c) @@ single_insert_into_trace se trace
-  | se :: rest ->
-      let l = single_insert_into_trace se trace in
-      List.concat_map
-        (fun (a, b, trace) ->
-          let trace' = insert_into_trace rest trace in
-          List.map (fun c -> a @ b @ c) trace')
-        l
+(* let rec insert_into_trace ses trace = *)
+(*   match ses with *)
+(*   | [] -> [ trace ] *)
+(*   | [ se ] -> *)
+(*       List.map (fun (a, b, c) -> a @ b @ c) @@ single_insert_into_trace se trace *)
+(*   | se :: rest -> *)
+(*       let l = single_insert_into_trace se trace in *)
+(*       List.concat_map *)
+(*         (fun (a, b, trace) -> *)
+(*           let trace' = insert_into_trace rest trace in *)
+(*           List.map (fun c -> a @ b @ c) trace') *)
+(* l *)
 
 let trace_divide_by_se se trace =
   let open SFA in
@@ -442,14 +325,6 @@ let trace_divide_by_se se trace =
   in
   aux [] trace
 
-let raw_regex_to_trace = function Seq l -> l | _ -> _die [%here]
-
-let charset_to_se loc s =
-  let open SFA in
-  match List.of_seq @@ CharSet.to_seq s with [ x ] -> x | _ -> _die loc
-
-let se_to_raw_regex se = MultiChar (SFA.CharSet.singleton se)
-
 let clearn_trace trace =
   List.filter_map
     (function
@@ -458,44 +333,172 @@ let clearn_trace trace =
       | _ -> _die [%here])
     trace
 
-let rec deductive_synthesis_reg env goal : SFA.C.t list goal_env option =
+let check_regex_include env checker (r1, r2) =
+  (* let () = *)
+  (*   Printf.printf "<<<: %s <: %s\n" (SFA.layout_raw_regex r1) *)
+  (*     (SFA.layout_raw_regex r2) *)
+  (* in *)
+  let all = mk_raw_all env in
+  let goals =
+    Desymbolic.desymbolic_reg OriginalFA env.event_tyctx checker
+      ([], SFA.raw_regex_to_regex (Inters (r1, Comple (all, r2))))
+  in
+  List.for_all
+    (fun (_, _, reg) ->
+      let open DesymFA in
+      let dfa = compile_regex_to_dfa reg in
+      let dfa = minimize dfa in
+      (* let () = Printf.printf "dfa:\n%s\n" (layout_dfa dfa) in *)
+      StateSet.is_empty dfa.finals)
+    goals
+
+let cur_to_obs { op; vs; phi } =
+  let args = List.map (fun x -> (Rename.unique x.x) #: x.ty) vs in
+  let phi =
+    List.fold_right
+      (fun (x, y) p -> subst_prop_instance x.x (AVar y) p)
+      (_safe_combine [%here] vs args)
+      phi
+  in
+  let vargs = List.map (fun x -> VVar x) args in
+  (args, phi, PlanObs { vargs; op })
+
+let to_conjs prop =
+  let rec aux = function And l -> List.concat_map aux l | _ as r -> [ r ] in
+  aux prop
+
+let to_lit_opt = function Lit lit -> Some lit.x | _ -> None
+let is_var_c = function AVar _ | AC _ -> true | _ -> false
+
+let lit_to_equation = function
+  | AAppOp (op, [ a; b ]) when String.equal eq_op op.x ->
+      if is_var_c a.x && is_var_c b.x then Some (a.x, b.x) else None
+  | _ -> None
+
+let simp_eq_lit lit =
+  match lit with
+  | AAppOp (op, [ a; b ]) when String.equal eq_op op.x ->
+      if equal_lit Nt.equal_nt a.x b.x then AC (B true) else lit
+  | _ -> lit
+
+let simpl_eq_in_prop =
+  let rec aux = function
+    | Lit lit -> Lit (simp_eq_lit lit.x) #: lit.ty
+    | Implies (e1, e2) -> Implies (aux e1, aux e2)
+    | Ite (e1, e2, e3) -> Ite (aux e1, aux e2, aux e3)
+    | Not p ->
+        let p = aux p in
+        if is_true p then mk_false else if is_false p then mk_true else Not p
+    | And es -> smart_and (List.map aux es)
+    | Or es -> smart_or (List.map aux es)
+    | Iff (e1, e2) -> Iff (aux e1, aux e2)
+    | Forall { qv; body } -> Forall { qv; body = aux body }
+    | Exists { qv; body } -> Exists { qv; body = aux body }
+  in
+  aux
+
+let eq_in_prop_to_subst_map (qvs, prop) =
+  let conjs = to_conjs prop in
+  let lits = List.filter_map to_lit_opt conjs in
+  let eqs = List.filter_map lit_to_equation lits in
+  let eqcs, eqvs =
+    List.partition
+      (function x, AVar _ -> false | x, AC _ -> true | _ -> _die [%here])
+      eqs
+  in
+  let subst_eqs x lit = List.map (map2 (subst_lit_instance x lit)) in
+  let rec aux (eqs, res) =
+    match eqs with
+    | [] -> res
+    | (AVar x, AVar y) :: eqs ->
+        let comp a b =
+          let c = compare (String.length a) (String.length b) in
+          if c == 0 then compare a b else c
+        in
+        let c = comp x.x y.x in
+        (* let () = Printf.printf "\tCompare %s %s = %i\n" x.x y.x c in *)
+        if c == 0 then aux (eqs, res)
+        else if c > 0 then
+          let res = res @ [ (x.x, AVar y) ] in
+          let eqs = subst_eqs x.x (AVar y) eqs in
+          aux (eqs, res)
+        else
+          let res = res @ [ (y.x, AVar x) ] in
+          let eqs = subst_eqs y.x (AVar x) eqs in
+          aux (eqs, res)
+    | (AVar x, AC c | AC c, AVar x) :: eqs ->
+        let res = res @ [ (x.x, AC c) ] in
+        let eqs = subst_eqs x.x (AC c) eqs in
+        aux (eqs, res)
+    | (AC _, AC _) :: eqs -> aux (eqs, res)
+    | _ -> _die [%here]
+  in
+  let m = aux (eqs, []) in
+  let prop =
+    List.fold_right (fun (x, lit) -> subst_prop_instance x lit) m prop
+  in
+  let qvs =
+    List.filter
+      (fun x -> not (List.exists (fun (y, _) -> String.equal x.x y) m))
+      qvs
+  in
+  let prop = simpl_eq_in_prop prop in
+  ((qvs, prop), m)
+
+let optimize_back_goal
+    ({ qvs; global_prop; reg = a, b, c } as goal :
+      (plan * plan_elem * plan) sgoal) =
+  let (qvs, global_prop), m = eq_in_prop_to_subst_map (qvs, global_prop) in
+  let a, c = map2 (Plan.msubst Plan.subst_plan m) (a, c) in
+  let b = Plan.msubst Plan.subst_elem m b in
+  let goal' = { qvs; global_prop; reg = (a, b, c) } in
+  let () =
+    Printf.printf "Optimize:\n";
+    layout_syn_back_judgement goal;
+    Printf.printf "==>\n";
+    layout_syn_back_judgement goal'
+  in
+  goal'
+
+let optimize_goal ({ qvs; global_prop; reg } as goal : plan sgoal) =
+  let (qvs, global_prop), m = eq_in_prop_to_subst_map (qvs, global_prop) in
+  { qvs; global_prop; reg = Plan.msubst Plan.subst_plan m reg }
+
+let rec deductive_synthesis_reg env goal : plan sgoal option =
   let goals = normalize_goal env goal in
   let res = List.filter_map (deductive_synthesis_trace env) goals in
   match res with [] -> None | g :: _ -> Some g
 
-and deductive_synthesis_trace env goal : SFA.C.t list goal_env option =
-  let goal = map_goal raw_regex_to_trace goal in
-  let () = layout_syn_trace_judgement goal in
-  let subgoals =
-    List.filter_map
-      (function MultiChar s -> Some (charset_to_se [%here] s) | _ -> None)
-      goal.reg
+and deductive_synthesis_trace env goal : plan sgoal option =
+  (* let goal = map_goal raw_regex_to_trace goal in *)
+  let () = layout_syn_plan_judgement goal in
+  let rec handle goal =
+    match Plan.right_most_se goal.reg with
+    | None -> Some goal
+    | Some (pre, cur, post) ->
+        let args, gprop', obs_elem = cur_to_obs cur in
+        let subgoal =
+          {
+            qvs = goal.qvs @ args;
+            global_prop = smart_add_to gprop' goal.global_prop;
+            reg = (pre, obs_elem, post);
+          }
+        in
+        let* goal = backward env subgoal in
+        let () = Printf.printf "next step\n" in
+        let () = layout_syn_plan_judgement goal in
+        handle goal
   in
-  let handle goal subgoal =
-    (* let () = Printf.printf "this step\n" in *)
-    (* let () = layout_syn_trace_judgement goal in *)
-    let pre, post = trace_divide_by_se subgoal goal.reg in
-    let cur = se_to_cur [%here] subgoal in
-    let goal = map_goal (fun _ -> (pre, cur, post)) goal in
-    let* goal = backward env goal in
-    let goal =
-      map_goal
-        (fun (pre, cur, post) -> pre @ [ se_to_raw_regex cur ] @ post)
-        goal
-    in
-    let () = Printf.printf "next step\n" in
-    let () = layout_syn_trace_judgement goal in
-    Some goal
-  in
-  let* res =
-    List.fold_left
-      (fun goal subgoal ->
-        match goal with
-        | None -> _die [%here]
-        | Some goal -> handle goal subgoal)
-      (Some goal) subgoals
-  in
-  let goal = map_goal clearn_trace res in
+  (* let* res = *)
+  (*   List.fold_left *)
+  (*     (fun goal subgoal -> *)
+  (*       match goal with *)
+  (*       | None -> _die [%here] *)
+  (*       | Some goal -> handle goal subgoal) *)
+  (*     (Some goal) subgoals *)
+  (* in *)
+  let* goal = handle goal in
+  let goal = map_goal (Plan.remove_star [%here]) goal in
   Some goal
 
 (* let rec aux res (pre, post) = *)
@@ -511,72 +514,96 @@ and deductive_synthesis_trace env goal : SFA.C.t list goal_env option =
 (* let res = backtrack (backward env) goals in *)
 (* None *)
 
-and backward env ({ qvs; global_prop; reg = pre, cur, post } as goal) =
+and backward env
+    ({ qvs; global_prop; reg = pre, elem, post } as goal :
+      (plan * plan_elem * plan) sgoal) : plan sgoal option =
   let () = layout_syn_back_judgement goal in
-  let { op; vs; phi } = cur in
-  match get_opt env.gen_ctx op with
-  | None -> _die [%here]
-  | Some true ->
-      Some { qvs; global_prop; reg = (pre, EffEvent { op; vs; phi }, post) }
-  | Some false ->
-      let handle (se, haft) =
-        let () =
-          Printf.printf "handle se: %s haft: %s\n" (layout_se se)
-            (layout_haft SFA.layout_raw_regex haft)
-        in
-        let args, retrty = destruct_haft [%here] haft in
-        let history, adding_se, p = destruct_hap [%here] retrty in
-        let op, _, phi' = _get_sevent_fields [%here] se in
-        let* gprop = abduction goal args (vs, phi, phi') in
-        let args = List.map (fun x -> x.x #: x.ty.nt) args in
-        let qvs = qvs @ args in
-        let global_prop = smart_add_to gprop global_prop in
-        let fs = parallel_interleaving p in
-        (* let fs = List.map (map2 (parallel_interleaving_to_trace env)) fs in *)
-        let goals =
-          List.concat_map
-            (fun (f11, f12) ->
-              let posts = insert_into_trace f12 post in
-              let old_cur = EffEvent { op; vs; phi = smart_add_to phi' phi } in
-              let f11' = adding_se :: f11 in
-              let pres =
-                List.map (trace_divide_by_se adding_se)
-                @@ insert_into_trace f11' pre
-              in
-              let goals =
-                List.map (fun ((pre1, pre2), post) ->
-                    {
-                      qvs;
-                      global_prop;
-                      reg =
-                        ( pre1,
-                          se_to_cur [%here] adding_se,
-                          pre2
-                          @ [ MultiChar (SFA.CharSet.singleton old_cur) ]
-                          @ post );
-                    })
-                @@ List.cross pres posts
-              in
-              goals)
-            fs
-        in
-        (* let () = List.iter layout_syn_tmp_judgement goals in *)
-        (* let () = List.iter layout_syn_back_judgement goals in *)
-        Some goals
-      in
-      let rules = select_rule_by_future env op in
+  let op, elem_args =
+    match elem with PlanObs { op; vargs } -> (op, vargs) | _ -> _die [%here]
+  in
+  if _get_force [%here] env.gen_ctx op then
+    let elem = PlanGen { op; vargs = elem_args } in
+    Some { qvs; global_prop; reg = pre @ [ elem ] @ post }
+  else
+    let handle (se, haft) =
       let () =
-        List.iteri
-          (fun i (se, haft) ->
-            let () =
-              Printf.printf "rule[%i] se: %s haft: %s\n" i (layout_se se)
-                (layout_haft SFA.layout_raw_regex haft)
-            in
-            ())
-          rules
+        Printf.printf "handle se: %s haft: %s\n" (layout_se se)
+          (layout_haft SFA.layout_raw_regex haft)
       in
-      let goals = List.concat @@ List.filter_map handle rules in
-      backtrack (backward env) goals
+      let args, retrty = destruct_haft [%here] haft in
+      let history, dep_se, p = destruct_hap [%here] retrty in
+      let () = Printf.printf "dep_se: %s\n" (layout_se dep_se) in
+      let dep_elem =
+        PlanObs
+          {
+            op = _get_sevent_name [%here] dep_se;
+            vargs = List.map (fun x -> VVar x.x #: x.ty.nt) args;
+          }
+      in
+      let () = Printf.printf "dep_elem: %s\n" (Plan.layout_elem dep_elem) in
+      let* gprop =
+        let _, _, phi' = _get_sevent_fields [%here] se in
+        let { op; vs; phi } = Plan.elem_to_cur env.event_tyctx elem in
+        abduction goal args (vs, phi, phi')
+      in
+      let args = List.map (fun x -> x.x #: x.ty.nt) args in
+      let qvs = qvs @ args in
+      let global_prop = smart_add_to gprop global_prop in
+      let qvs, global_prop, p =
+        List.fold_left
+          (fun (qvs, global_prop, p) se ->
+            let args, phi, elem = cur_to_obs @@ se_to_cur [%here] se in
+            (qvs @ args, smart_add_to phi global_prop, p @ [ elem ]))
+          (qvs, global_prop, []) p
+      in
+      let fs = Plan.parallel_interleaving p in
+      (* let fs = List.map (map2 (parallel_interleaving_to_trace env)) fs in *)
+      let check_include =
+        check_regex_include env (fun (_, prop) ->
+            let p = smart_add_to global_prop prop in
+            (* let () = Printf.printf "CheckSet: %s\n" (layout_prop p) in *)
+            Prover.check_sat_bool (smart_add_to global_prop prop))
+      in
+      let goals =
+        List.concat_map
+          (fun (f11, f12) ->
+            let posts = Plan.insert env.event_tyctx check_include f12 post in
+            (* let old_cur = EffEvent { op; vs; phi = smart_add_to phi' phi } in *)
+            let f11' = dep_elem :: f11 in
+            let pres =
+              List.map (Plan.divide_by_elem dep_elem)
+              @@ Plan.insert env.event_tyctx check_include f11' pre
+            in
+            let goals =
+              List.map (fun ((pre1, pre2), post) ->
+                  {
+                    qvs;
+                    global_prop;
+                    reg = (pre1, dep_elem, pre2 @ [ elem ] @ post);
+                  })
+              @@ List.cross pres posts
+            in
+            goals)
+          fs
+      in
+      (* let () = List.iter layout_syn_tmp_judgement goals in *)
+      (* let () = List.iter layout_syn_back_judgement goals in *)
+      Some goals
+    in
+    let rules = select_rule_by_future env op in
+    let () =
+      List.iteri
+        (fun i (se, haft) ->
+          let () =
+            Printf.printf "rule[%i] se: %s haft: %s\n" i (layout_se se)
+              (layout_haft SFA.layout_raw_regex haft)
+          in
+          ())
+        rules
+    in
+    let goals = List.concat @@ List.filter_map handle rules in
+    let goals = List.map optimize_back_goal goals in
+    backtrack (backward env) goals
 
 let quantifier_elimination (qvs, gprop, qv, local_qvs, prop) =
   let () = Printf.printf "remove qv: %s\n" (layout_qv qv) in
@@ -627,83 +654,156 @@ let quantifier_elimination (qvs, gprop, qv, local_qvs, prop) =
         fvs
     in
     let fvs = List.filter check_valid fvs in
-    let () = Printf.printf "res: %s\n" @@ layout_prop (smart_or fvs) in
+    (* let () = Printf.printf "res: %s\n" @@ layout_prop (smart_or fvs) in *)
     match fvs with [] -> None | _ -> Some (smart_or fvs)
 
 let rec to_top_cnf phi =
   match phi with And ps -> List.concat_map to_top_cnf ps | _ -> [ phi ]
 
-let reverse_instantiation env { qvs; global_prop; reg = trace } =
-  let localize_se (vs, phi) =
-    let ps = to_top_cnf phi in
-    let lits =
-      List.map
-        (fun x ->
-          let res =
-            List.filter_map
-              (function
-                | Lit lit -> find_assignment_of_intvar lit.x x.x | _ -> None)
-              ps
-          in
-          match res with [] -> _die [%here] | lit :: _ -> (x, lit))
-        vs
-    in
-    let eq_phi =
-      List.map (fun (x, lit) -> mk_lit_eq_lit x.ty (AVar x) lit) lits
-    in
-    let phi =
-      List.fold_right
-        (fun (x, lit) res -> subst_prop_instance x.x lit res)
-        lits phi
-    in
-    (eq_phi, phi)
+let tv_mem vs qv = List.exists (fun x -> String.equal x.x qv.x) vs
+let tv_not_mem vs qv = not (tv_mem vs qv)
+let tv_to_lit x = (AVar x) #: x.ty
+let c_to_lit c = (AC c) #: (constant_to_nt c)
+
+module Gamma = struct
+  type gamma = { bvs : (Nt.nt, string) typed list; bprop : Nt.nt prop }
+
+  let mem { bvs; _ } = tv_mem bvs
+  let not_mem { bvs; _ } = tv_not_mem bvs
+  let emp = { bvs = []; bprop = mk_true }
+
+  let layout { bvs; bprop } =
+    spf "{%s | %s}" (layout_qvs bvs) (layout_prop bprop)
+end
+
+let instantiation_var (gamma : Gamma.gamma) vs ({ qvs; global_prop; _ } as goal)
+    =
+  let cs = get_consts global_prop in
+  let lits = List.map tv_to_lit (gamma.bvs @ vs) @ List.map c_to_lit cs in
+  let fvtab = build_fvtab lits in
+  let fvtab =
+    List.filter
+      (fun lit ->
+        let s =
+          List.interset String.equal (List.map _get_x vs) (fv_lit_id lit)
+        in
+        not (List.is_empty s))
+      fvtab
   in
-  let rec handle (bvs, gprop, prog, qvs, prop, trace) =
-    match trace with
-    | [] -> ()
-    | se :: trace ->
-        let () = Printf.printf "bound vars: %s\n" (layout_qvs qvs) in
-        let () = Printf.printf "gprop: %s\n" (layout_prop gprop) in
-        let () =
-          Printf.printf "gprog: %s\n" (List.split_by_comma layout_se prog)
-        in
-        let () = Printf.printf "prop: %s\n" (layout_prop prop) in
-        let op, vs, phi = _get_sevent_fields [%here] se in
-        let fvs = fv_prop_id phi in
-        let vs' =
-          List.filter (fun x -> List.exists (String.equal x.x) fvs) vs
-        in
-        let qvs1, qvs2 =
-          List.partition (fun x -> List.exists (String.equal x.x) fvs) qvs
-        in
-        if _get_force [%here] env.gen_ctx op then
-          let aux rest =
-            match rest with
-            | [] -> mk_true
-            | qv :: qvs1 -> (
-                let p =
-                  quantifier_elimination (bvs, gprop, qv, qvs1 @ qvs2, prop)
-                in
-                match p with Some p -> p | None -> _die [%here])
-          in
-          let p = aux qvs1 in
-          handle
-            (bvs @ qvs1, smart_add_to p gprop, prog @ [ se ], qvs2, prop, trace)
-        else
-          let phi', phi = localize_se (vs', phi) in
-          handle
-            ( bvs @ qvs1,
-              smart_add_to phi gprop,
-              prog @ [ EffEvent { op; vs; phi } ],
-              qvs2,
-              prop,
-              trace )
+  let check_valid_feature lit =
+    let aux prop =
+      Prover.check_valid
+        (smart_forall gamma.bvs @@ smart_implies gamma.bprop prop)
+    in
+    (not (aux @@ lit_to_prop lit)) && not (aux @@ Not (lit_to_prop lit))
   in
-  handle ([], mk_true, [], qvs, global_prop, trace)
+  let check_valid_pre prop =
+    not
+      (Prover.check_valid
+         (smart_forall gamma.bvs @@ smart_implies gamma.bprop (Not prop)))
+  in
+  let check_valid abd =
+    let p =
+      smart_forall (gamma.bvs @ vs)
+      @@ smart_exists qvs
+      @@ smart_implies (smart_add_to abd gamma.bprop) global_prop
+    in
+    let () = Printf.printf "check: %s\n" @@ layout_prop p in
+    Prover.check_valid p
+  in
+  let fvs = List.init (List.length fvtab) (fun _ -> [ true; false ]) in
+  let fvs = List.choose_list_list fvs in
+  let fvs =
+    List.map
+      smart_and
+      #. (List.mapi (fun idx x ->
+              let lit = lit_to_prop @@ List.nth fvtab idx in
+              if x then lit else Not lit))
+      fvs
+  in
+  let fvs = List.filter check_valid_pre fvs in
+  let fvs = List.filter check_valid fvs in
+  let () = Printf.printf "res: %s\n" @@ layout_prop (smart_or fvs) in
+  match fvs with
+  | [] -> _die [%here]
+  | _ ->
+      let bprop' = smart_or fvs in
+      let gamma =
+        Gamma.{ bvs = gamma.bvs @ vs; bprop = smart_add_to bprop' gamma.bprop }
+      in
+      (gamma, bprop')
+
+let instantiation env goal =
+  let get_fvargs gamma vargs qvs =
+    let args =
+      List.filter_map (function VVar x -> Some x | _ -> None) vargs
+    in
+    let args = List.filter (Gamma.not_mem gamma) args in
+    let qvs' = List.filter (tv_not_mem args) qvs in
+    let () =
+      Printf.printf
+        "get_fvargs:::\n\
+         gamma: %s $$$ vargs: %s $$$ qvs: %s\n\
+         ==>args: %s $$$ qvs: %s\n"
+        (layout_qvs gamma.bvs)
+        (List.split_by_comma layout_value vargs)
+        (layout_qvs qvs) (layout_qvs args) (layout_qvs qvs')
+    in
+    (args, qvs')
+  in
+  let rec handle gamma ({ qvs; global_prop; reg = plan } as goal) =
+    let () =
+      Printf.printf "Gamma: %s\n" (Gamma.layout gamma);
+      layout_syn_plan_judgement goal
+    in
+    match plan with
+    | [] -> if 0 == List.length qvs then mk_term_tt else _die [%here]
+    | PlanGen { op; vargs } :: plan ->
+        let fargs, qvs = get_fvargs gamma vargs qvs in
+        let goal = { goal with reg = plan; qvs } in
+        let gamma, prop' = instantiation_var gamma fargs goal in
+        let e = handle gamma goal in
+        let e = mk_term_assertP prop' @@ mk_term_gen env op vargs e in
+        let e =
+          List.fold_right (fun x -> mk_let [ x ] (CRandom x.ty)) fargs e
+        in
+        e
+    | PlanObs { op; vargs } :: plan ->
+        let fargs, qvs = get_fvargs gamma vargs qvs in
+        let goal = { goal with reg = plan; qvs } in
+        let gamma, prop' = instantiation_var gamma fargs goal in
+        (* let () = _die [%here] in *)
+        let e = handle gamma goal in
+        let args' =
+          List.map
+            (function
+              | VVar x when name_in_qvs x.x fargs -> x
+              | _ as v -> (Rename.unique "tmp") #: (value_to_nt v))
+            vargs
+        in
+        let ps =
+          List.filter_map (fun (x, y) ->
+              if equal_value (VVar x) y then None
+              else
+                let lit = mk_lit_eq_lit x.ty (AVar x) (value_to_lit y) in
+                Some (lit_to_prop lit))
+          @@ _safe_combine [%here] args' vargs
+        in
+        let p = smart_and (ps @ [ prop' ]) in
+        let e = mk_term_obs env op args' (mk_term_assertP p e) in
+        e
+    | _ :: _ -> _die [%here]
+  in
+  let prog = handle Gamma.emp goal in
+  let () = Pp.printf "@{<bold>Prog@}:\n%s\n" (layout_term prog) in
+  prog
 
 let synthesize env goal =
-  let* res = deductive_synthesis_reg env goal in
-  Some (reverse_instantiation env res)
+  let* goal = deductive_synthesis_reg env goal in
+  let () = Printf.printf "Result: %s\n" (Plan.layout_plan goal.reg) in
+  let _ = instantiation env goal in
+  None
+(* Some (reverse_instantiation env res) *)
 
 let test env =
   let _ = synthesize env @@ mk_synthesis_goal env in
