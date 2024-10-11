@@ -5,7 +5,10 @@
     "max_printing_size": 300,
     "log_tags": [
         // "queries",
+        // "model",
+        // "z3encode",
         "result",
+        // "desym_mapping",
         // "desymbolic",
         "never-use"
     ],

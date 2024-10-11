@@ -5,6 +5,9 @@
  (libraries syntax language)
  (modules
   synthesis
+  gamma
+  abduction
+  feature
 )
 (preprocess (pps ppx_here))
 )

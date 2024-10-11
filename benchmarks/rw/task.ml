@@ -46,5 +46,5 @@ let[@goal] readAfterWrite (x : int) (y : int) =
     (allA;
      WriteRsp (va == x && stat);
      starA (anyA - WriteRsp stat);
-     ReadRsp (va == y && not (y == x));
+     ReadRsp (va == y && not (x == y));
      starA (anyA - ReadRsp true - WriteRsp true))

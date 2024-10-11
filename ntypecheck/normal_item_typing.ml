@@ -54,11 +54,17 @@ let add_to_env env = function
 
 let handle_reg env reg =
   let op_names = List.map _get_x (ctx_to_list env.event_tyctx) in
+  (* let () = *)
+  (*   Pp.printf "@{<bold>Before:@} %s\n" (layout_symbolic_regex_precise reg) *)
+  (* in *)
   let reg =
     desugar env.event_tyctx (SyntaxSugar (CtxOp { op_names; body = reg }))
   in
+  (* let () = *)
+  (*   Pp.printf "@{<bold>After:@} %s\n" (layout_symbolic_regex_precise reg) *)
+  (* in *)
   let reg = delimit_context delimit_cotexnt_se reg in
-  SFA.regex_to_raw reg
+  reg
 
 let map_fa_haft f haft =
   let rec aux t =
@@ -76,7 +82,8 @@ let map_fa_haft f haft =
   in
   aux haft
 
-let handle_haft env haft = map_fa_haft (handle_reg env) haft
+let handle_haft env haft =
+  map_fa_haft (fun r -> SFA.regex_to_raw @@ handle_reg env r) haft
 
 (* NOTE: the whole spec items are first-order *)
 let item_check env = function
@@ -95,6 +102,7 @@ let item_check env = function
       | _ ->
           let tyctx = add_to_rights env.tyctx qvs in
           let regex_ctx = mk_regex_ctx (env.event_tyctx, tyctx) in
+          let prop = handle_reg env prop in
           let prop = _get_x @@ bi_symbolic_regex_check regex_ctx prop in
           { env with goal = Some { qvs; prop } })
   | _ -> env
@@ -103,5 +111,7 @@ let struct_check env l =
   let env = List.fold_left add_to_env env l in
   let () = Printf.printf "%s\n" (layout_syn_env env) in
   let l = List.map (locally_rename_item env.event_tyctx) l in
+  (* let () = Printf.printf "%s\n" @@ layout_structure l in *)
+  (* let () = _die [%here] in *)
   let env = List.fold_left item_check env l in
   env

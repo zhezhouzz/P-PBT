@@ -63,8 +63,12 @@ type cur = { op : string; vs : (Nt.nt, string) typed list; phi : Nt.nt prop }
 [@@deriving show, eq, ord]
 
 type plan_elem =
-  | PlanObs of { op : string; vargs : value list }
-  | PlanGen of { op : string; vargs : value list }
+  | PlanAct of { op : string; args : (Nt.nt, string) typed list }
+  | PlanActBuffer of {
+      op : string;
+      args : (Nt.nt, string) typed list;
+      phi : Nt.nt prop;
+    }
   | PlanSe of cur
   | PlanStarInv of SFA.CharSet.t
   | PlanStar of SFA.CharSet.t raw_regex
