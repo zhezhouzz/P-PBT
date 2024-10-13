@@ -13,7 +13,7 @@ type runtime = {
   trace : trace;
   buffer : trace;
   store : constant StrMap.t;
-  event_rtyctx : SFA.raw_regex haft StrMap.t;
+  event_rtyctx : SFA.raw_regex haft ctx;
 }
 
 let layout_store store =
@@ -27,11 +27,11 @@ let layout_runtime { trace; buffer; store; _ } =
 let default_sample_domain =
   SampleDomain.of_seq @@ List.to_seq
   @@ [
-       (Nt.Ty_int, List.map (fun n -> I n) [ 0; 1; 2 ]);
+       (Nt.Ty_int, List.map (fun n -> I n) [ -1; 0; 1; 2 ]);
        (Nt.Ty_bool, List.map (fun n -> B n) [ true; false ]);
      ]
 
-let init_runtime env sample_domain =
+let init_runtime (env : syn_env) sample_domain =
   {
     sample_domain;
     trace = [];
@@ -79,7 +79,11 @@ let sample runtime qv =
 
 let sample_phi runtime (vs, prop) =
   let rec aux (n : int) =
-    if n <= 0 then _die_with [%here] "sample too many times"
+    if n <= 0 then
+      let () =
+        Printf.printf "vs: %s; prop: %s\n" (layout_qvs vs) (layout_prop prop)
+      in
+      _die_with [%here] "sample too many times"
     else
       let store = List.map (sample runtime) vs in
       let store' = StrMap.add_seq (List.to_seq store) runtime.store in
@@ -101,7 +105,7 @@ let sample_event runtime = function
   | _ -> _die [%here]
 
 let send runtime (op, cs) =
-  let tau = StrMap.find "never" runtime.event_rtyctx op in
+  let tau = _get_force [%here] runtime.event_rtyctx op in
   let ses = reduce_haft (runtime.trace, cs) tau in
   let msgs = List.map (sample_event runtime) ses in
   {
@@ -113,11 +117,11 @@ let send runtime (op, cs) =
 let recv_and_send runtime op =
   let rec aux = function
     | [] -> _die_with [%here] @@ spf "runtime error: cannot recv message(%s)" op
-    | (op', args) :: buffer ->
+    | ((op', args) as elem) :: buffer ->
         if String.equal op op' then (args, buffer)
         else
           let args, buffer = aux buffer in
-          (args, (op', args) :: buffer)
+          (args, elem :: buffer)
   in
   let args, buffer = aux runtime.buffer in
   let runtime = send { runtime with buffer } (op, args) in

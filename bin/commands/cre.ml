@@ -52,6 +52,16 @@ let syn_term source_file output_file () =
     Out_channel.close oc;
     raise e
 
+let eval source_file output_file () =
+  let code = read_source_file source_file () in
+  let env = Ntypecheck.(struct_check init_env code) in
+  let () = Printf.printf "%s\n" (layout_syn_env env) in
+  let ic = In_channel.open_text output_file in
+  let sexp = Sexplib.Sexp.load_sexp output_file in
+  let term = term_of_sexp sexp in
+  let () = Interpreter.interpret env term in
+  ()
+
 let two_param message f =
   Command.basic ~summary:message
     Command.Let_syntax.(
@@ -115,6 +125,7 @@ let cmds =
   [
     ("read-syn", one_param "read_syn" read_syn);
     ("syn-one", two_param_string "syn-one" syn_term);
+    ("eval", two_param_string "eval" eval);
     (* ("read-automata", one_param "read_automata" read_automata); *)
     (* ("read-sfa", one_param "read_sfa" read_sfa); *)
     (* ("read-p", one_param "read_p" read_p); *)

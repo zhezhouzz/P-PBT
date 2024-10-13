@@ -947,7 +947,10 @@ let instantiation env goal =
           (*   mk_term_assertP prop' *)
           (*   @@ mk_term_gen env op (List.map (fun x -> VVar x) args) e *)
           (* in *)
-          let e = mk_let fargs (CAssume (List.map _get_ty fargs, prop')) e in
+          let e =
+            mk_let fargs (CAssume (List.map _get_ty fargs, prop'))
+            @@ mk_term_gen env op (List.map (fun x -> VVar x) args) e
+          in
           e
         else
           let args' =

@@ -41,6 +41,9 @@ let putRsp =
 let commit = (allA, Commit true, [||])
 let abort = (allA, Abort true, [||])
 
+let writeRsp ?l:(x = (true : [%v: int])) ?l:(s = (v : [%v: bool])) =
+  (allA, WriteRsp (va == x && stat), [||])
+
 let[@goal] readAfterWrite (x : int) (y : int) =
   not
     (allA;

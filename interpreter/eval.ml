@@ -49,3 +49,13 @@ let rec eval (runtime, term) =
 and eval_single_return (runtime, term) =
   let runtime, res = eval (runtime, term) in
   match res with [ v ] -> (runtime, v) | _ -> _die [%here]
+
+let eval_until_consistent (runtime, term) =
+  let rec aux (i : int) =
+    if i > 1000 then _die_with [%here] "too many time until consistent"
+    else
+      try eval (runtime, term) with
+      | RuntimeInconsistent _ -> aux (i + 1)
+      | e -> raise e
+  in
+  aux 0
