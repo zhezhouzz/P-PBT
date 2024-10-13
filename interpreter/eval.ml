@@ -54,8 +54,10 @@ let eval_until_consistent (runtime, term) =
   let rec aux (i : int) =
     if i > 1000 then _die_with [%here] "too many time until consistent"
     else
-      try eval (runtime, term) with
+      try (i, eval (runtime, term)) with
       | RuntimeInconsistent _ -> aux (i + 1)
       | e -> raise e
   in
-  aux 0
+  let i, res = aux 0 in
+  let () = Pp.printf "@{<red>Repeat for %i times@}\n" i in
+  res
