@@ -31,7 +31,10 @@ type 'r haft =
 [@@deriving show, eq, ord]
 
 type value = VVar of (Nt.nt, string) typed | VConst of constant
-[@@deriving show, eq, ord]
+[@@deriving sexp, show, eq, ord]
+
+type trace_elem = string * constant list [@@deriving show, eq, ord]
+type trace = trace_elem list [@@deriving show, eq, ord]
 
 type term =
   | CVal of (Nt.nt, value) typed
@@ -45,9 +48,9 @@ type term =
   | CGen of { op : (Nt.nt, string) typed; args : (Nt.nt, value) typed list }
   | CUnion of term list
   | CAssert of value
-  | CRandom of Nt.nt
+  | CAssume of (Nt.nt list * Nt.nt prop)
   | CAssertP of Nt.nt prop
-[@@deriving show, eq, ord]
+[@@deriving sexp, show, eq, ord]
 
 type syn_goal = { qvs : (Nt.nt, string) typed list; prop : srl }
 [@@deriving show, eq, ord]
@@ -93,7 +96,8 @@ let term_to_nt = function
   | CAppOp { op; _ } -> snd @@ Nt.destruct_arr_tp op.ty
   | CObs { op } -> snd @@ Nt.destruct_arr_tp op.ty
   | CGen _ | CUnion _ | CAssert _ | CAssertP _ -> Ty_unit
-  | CRandom nt -> nt
+  (* | CRandom nt -> nt *)
+  | CAssume (nts, _) -> Nt.Ty_tuple nts
 
 let mk_let lhs rhs body =
   let ty =
@@ -212,3 +216,10 @@ let rec fresh_haft t =
       let retrty = subst_haft arg (AVar arg' #: argcty.nt) retrty in
       RtyArr { arg = arg'; argcty; retrty }
   | RtyInter (t1, t2) -> RtyInter (fresh_haft t1, fresh_haft t2)
+
+open Zdatatype
+
+let layout_trace_elem (op, args) =
+  spf "%s(%s)" op (List.split_by_comma layout_constant args)
+
+let layout_trace = List.split_by "; " layout_trace_elem

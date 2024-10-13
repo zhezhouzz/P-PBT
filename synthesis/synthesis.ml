@@ -943,13 +943,11 @@ let instantiation env goal =
         let gamma, prop' = instantiation_var gamma fargs gamma' in
         let e = handle gamma (gamma', plan) in
         if is_gen env op then
-          let e =
-            mk_term_assertP prop'
-            @@ mk_term_gen env op (List.map (fun x -> VVar x) args) e
-          in
-          let e =
-            List.fold_right (fun x -> mk_let [ x ] (CRandom x.ty)) fargs e
-          in
+          (* let e = *)
+          (*   mk_term_assertP prop' *)
+          (*   @@ mk_term_gen env op (List.map (fun x -> VVar x) args) e *)
+          (* in *)
+          let e = mk_let fargs (CAssume (List.map _get_ty fargs, prop')) e in
           e
         else
           let args' =
@@ -979,10 +977,11 @@ let instantiation env goal =
 let synthesize env goal =
   let* gamma, plan = deductive_synthesis_reg env goal in
   let () = Printf.printf "Result: %s\n" (Plan.layout_plan plan) in
-  let _ = instantiation env (gamma, plan) in
-  None
+  let term = instantiation env (gamma, plan) in
+  Some term
 (* Some (reverse_instantiation env res) *)
 
-let test env =
-  let _ = synthesize env @@ mk_synthesis_goal env in
-  ()
+let syn_one env =
+  match synthesize env @@ mk_synthesis_goal env with
+  | None -> _die_with [%here] "synthesis fails"
+  | Some term -> term

@@ -35,8 +35,22 @@ let read_syn source_file () =
   (* let () = Printf.printf "%s\n" (layout_structure code) in *)
   let env = Ntypecheck.(struct_check init_env code) in
   let () = Printf.printf "%s\n" (layout_syn_env env) in
-  let () = Synthesis.test env in
+  let term = Synthesis.syn_one env in
   ()
+
+let syn_term source_file output_file () =
+  let code = read_source_file source_file () in
+  (* let () = Printf.printf "%s\n" (layout_structure code) in *)
+  let env = Ntypecheck.(struct_check init_env code) in
+  let () = Printf.printf "%s\n" (layout_syn_env env) in
+  let term = Synthesis.syn_one env in
+  let oc = Out_channel.open_text output_file in
+  try
+    Sexplib.Sexp.output oc @@ sexp_of_term term;
+    Out_channel.close oc
+  with e ->
+    Out_channel.close oc;
+    raise e
 
 let two_param message f =
   Command.basic ~summary:message
@@ -92,14 +106,15 @@ let two_param_string message f =
         flag "config"
           (optional_with_default Myconfig.default_meta_config_path regular_file)
           ~doc:"config file path"
-      and file1 = anon ("file1" %: string)
-      and source_file = anon ("source_code_file" %: regular_file) in
+      and source_file = anon ("source_code_file" %: regular_file)
+      and file1 = anon ("file1" %: string) in
       let () = Myconfig.meta_config_path := config_file in
-      f file1 source_file)
+      f source_file file1)
 
 let cmds =
   [
     ("read-syn", one_param "read_syn" read_syn);
+    ("syn-one", two_param_string "syn-one" syn_term);
     (* ("read-automata", one_param "read_automata" read_automata); *)
     (* ("read-sfa", one_param "read_sfa" read_sfa); *)
     (* ("read-p", one_param "read_p" read_p); *)
