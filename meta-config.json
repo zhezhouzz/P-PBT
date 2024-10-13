@@ -4,6 +4,8 @@
     ],
     "max_printing_size": 300,
     "log_tags": [
+        "plan",
+        // "parsing",
         // "queries",
         // "model",
         // "z3encode",

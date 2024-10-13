@@ -18,6 +18,7 @@
    ; inst
    ; pmachine
    ; wrapper
+   plan
    syntax
  )
  (preprocess

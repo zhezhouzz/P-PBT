@@ -155,6 +155,11 @@ let mk_term_gen env op args e =
 let mk_term_assertP prop e =
   if is_true prop then e else term_concat (CAssertP prop) e
 
+let mk_term_assume args prop e =
+  match args with
+  | [] -> if is_true prop then e else _die_with [%here] "not true"
+  | _ -> mk_let args (CAssume (List.map _get_ty args, prop)) e
+
 let mk_term_obs env op args e =
   let ty = _get_force [%here] env.event_tyctx op in
   mk_let args (CObs { op = op #: (Nt.Ty_record ty) }) e

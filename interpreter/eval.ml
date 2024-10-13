@@ -2,8 +2,6 @@ open Language
 open Common
 open Runtime
 
-exception RuntimeInconsistent of runtime
-
 let counter = ref 0
 
 let rec eval (runtime, term) =
@@ -52,6 +50,7 @@ and eval_single_return (runtime, term) =
 
 let eval_until_consistent (runtime, term) =
   let rec aux (i : int) =
+    let () = counter := 0 in
     if i > 1000 then _die_with [%here] "too many time until consistent"
     else
       try (i, eval (runtime, term)) with

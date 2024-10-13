@@ -35,3 +35,20 @@ let get_absty nt =
     | _ -> _die_with [%here] (Nt.layout nt)
   in
   List.slow_rm_dup String.equal (aux nt)
+
+let layout_value = function
+  | VVar qv -> layout_qv qv
+  | VConst c -> layout_constant c
+
+let is_gen env op = _get_force [%here] env.gen_ctx op
+
+let destruct_cty_var x =
+  let x' = x.x #: x.ty.nt in
+  let phi = subst_prop_instance default_v (AVar x') x.ty.phi in
+  (x', phi)
+
+let se_to_cur loc se =
+  let op, vs, phi = _get_sevent_fields loc se in
+  { op; vs; phi }
+
+let cur_to_se { op; vs; phi } = EffEvent { op; vs; phi }

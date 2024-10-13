@@ -109,6 +109,54 @@ let charset_to_se loc s =
 
 let se_to_raw_regex se = MultiChar (SFA.CharSet.singleton se)
 
+let raw_regex_to_cs r =
+  let open SFA in
+  let rec aux r =
+    match r with
+    | MultiChar cs -> Some cs
+    | Comple (cs, r) ->
+        let* cs' = aux r in
+        let cs =
+          CharSet.filter_map
+            (fun se ->
+              let op, vs, phi = _get_sevent_fields [%here] se in
+              let phis =
+                CharSet.fold
+                  (fun se' phis ->
+                    let op', _, phi' = _get_sevent_fields [%here] se' in
+                    if String.equal op op' then phi' :: phis else phis)
+                  cs' []
+              in
+              let phi = smart_add_to phi (Not (smart_or phis)) in
+              match phi with
+              | Not p when is_true p -> None
+              | _ -> Some (EffEvent { op; vs; phi }))
+            cs
+        in
+        Some cs
+    | Inters (r1, r2) ->
+        let* cs1 = aux r1 in
+        let* cs2 = aux r2 in
+        let cs =
+          CharSet.filter_map
+            (fun se ->
+              let op, vs, phi = _get_sevent_fields [%here] se in
+              let phis =
+                CharSet.fold
+                  (fun se' phis ->
+                    let op', _, phi' = _get_sevent_fields [%here] se' in
+                    if String.equal op op' then phi' :: phis else phis)
+                  cs2 []
+              in
+              let phi = smart_add_to phi (smart_or phis) in
+              if is_false phi then None else Some (EffEvent { op; vs; phi }))
+            cs1
+        in
+        Some cs
+    | _ -> None
+  in
+  aux r
+
 let raw_regex_to_plan_elem r =
   let open SFA in
   let r = unify_raw_regex r in
@@ -117,12 +165,15 @@ let raw_regex_to_plan_elem r =
       let se = charset_to_se [%here] cs in
       let op, vs, phi = _get_sevent_fields [%here] se in
       PlanSe { op; vs; phi }
-  | Star (MultiChar cs) -> PlanStarInv cs
-  | Star r ->
-      let () =
-        Printf.printf "Not a star:\n %s\n" (show_raw_regex (fun _ _ -> ()) r)
-      in
-      _die [%here]
+  | Star r -> (
+      match raw_regex_to_cs r with
+      | Some cs -> PlanStarInv cs
+      | None ->
+          let () =
+            Printf.printf "Not a star:\n %s\n"
+              (show_raw_regex (fun _ _ -> ()) r)
+          in
+          _die [%here])
   | Seq _ | Empty | Eps | Alt _ | Inters _ | Comple _ -> _die [%here]
 
 open Gamma
@@ -707,8 +758,9 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
         | None -> _die [%here]
       in
       let args, retrty = destruct_haft [%here] haft in
-      (* TODO: handle history *)
-      let _, dep_se, p = destruct_hap [%here] retrty in
+      let history, dep_se, p = destruct_hap [%here] retrty in
+      (* NOTE: history should be well-formed. *)
+      let history_plan = raw_regex_to_plan history in
       let () = Printf.printf "dep_se: %s\n" (layout_se dep_se) in
       let dep_elem =
         (* NOTE: the payload should just conj of eq *)
@@ -756,6 +808,13 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
             let pres =
               List.map (Plan.divide_by_elem dep_elem) @@ Plan.insert f11' pre
             in
+            let pres =
+              List.concat_map
+                (fun (pre1, dep_elem', pre2) ->
+                  let pre1s = Plan.merge_plan history_plan pre1 in
+                  List.map (fun pre1 -> (pre1, dep_elem', pre2)) pre1s)
+                pres
+            in
             let goals =
               List.map (fun ((pre1, dep_elem', pre2), post) ->
                   (gamma, (pre1, dep_elem', pre2 @ [ elem ] @ post)))
@@ -784,6 +843,7 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
         rules
     in
     let goals = List.concat_map handle rules in
+    (* let () = if String.equal op "eCoffeeMakerReady" then _die [%here] in *)
     let abd_and_backtract (args, gamma, mid_plan) =
       let () =
         Pp.printf "@{<bold>Before Abduction@}: ";
@@ -799,7 +859,6 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
         Pp.printf "@{<bold>After Opt@}: ";
         layout_syn_back_judgement goal
       in
-      (* let () = if String.equal op "putReq" then _die [%here] in *)
       backward env goal
     in
     (* let goals = List.map optimize_back_goal goals in *)
@@ -947,11 +1006,8 @@ let instantiation env goal =
           (*   mk_term_assertP prop' *)
           (*   @@ mk_term_gen env op (List.map (fun x -> VVar x) args) e *)
           (* in *)
-          let e =
-            mk_let fargs (CAssume (List.map _get_ty fargs, prop'))
-            @@ mk_term_gen env op (List.map (fun x -> VVar x) args) e
-          in
-          e
+          mk_term_assume fargs prop'
+          @@ mk_term_gen env op (List.map (fun x -> VVar x) args) e
         else
           let args' =
             List.map

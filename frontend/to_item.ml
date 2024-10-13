@@ -19,6 +19,11 @@ let rec parse_goal expr =
   | _ -> ([], symbolic_regex_of_expr expr)
 
 let ocaml_structure_item_to_item structure =
+  let () =
+    _log "parsing" @@ fun _ ->
+    Pp.printf "@{<bold>parsing:@}\n%s\n"
+      (Pprintast.string_of_structure [ structure ])
+  in
   match structure.pstr_desc with
   | Pstr_primitive { pval_name; pval_type; pval_attributes; _ } -> (
       match pval_attributes with
@@ -57,6 +62,7 @@ let ocaml_structure_item_to_item structure =
                    "syntax error: non known rty kind, not axiom | assert | \
                     library")
          | _ -> _die [%here])
+  | Pstr_attribute _ -> None
   | _ ->
       let () =
         Printf.printf "%s\n" (Pprintast.string_of_structure [ structure ])
@@ -82,6 +88,10 @@ let layout_item = function
 let layout_structure l = spf "%s\n" (List.split_by "\n" layout_item l)
 
 let locally_rename_item ctx item =
+  let () =
+    _log "parsing" @@ fun _ ->
+    Pp.printf "@{<bold>parsing2:@}\n%s\n" (layout_item item)
+  in
   match item with
   | MsgNtDecl _ | PrimDecl _ -> item
   | MsgDecl { name; haft } ->

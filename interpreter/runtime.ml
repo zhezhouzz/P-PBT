@@ -16,6 +16,8 @@ type runtime = {
   event_rtyctx : SFA.raw_regex haft ctx;
 }
 
+exception RuntimeInconsistent of runtime
+
 let layout_store store =
   List.split_by " ;" (fun (x, c) -> spf "%s --> %s" x (layout_constant c))
   @@ StrMap.to_kv_list store
@@ -59,18 +61,16 @@ let reduce_haft (l, cs) (tau : SFA.raw_regex haft) =
   let rec aux (tau, cs) =
     match (tau, cs) with
     | RtyHAParallel { history; parallel; _ }, [] ->
-        if Derivative.is_match reduce_sevent history l then Some parallel
-        else None
+        if Derivative.is_match reduce_sevent history l then [ parallel ] else []
     | RtyArr { arg; argcty; retrty }, c :: cs ->
         if reduce_cty c argcty then
           let retrty = subst_haft arg (AC c) retrty in
           aux (retrty, cs)
-        else None
-    | RtyInter (tau1, tau2), _ -> (
-        match aux (tau1, cs) with Some res -> Some res | None -> aux (tau2, cs))
+        else []
+    | RtyInter (tau1, tau2), _ -> aux (tau1, cs) @ aux (tau2, cs)
     | _, _ -> _die [%here]
   in
-  match aux (tau, cs) with Some res -> res | None -> _die [%here]
+  match aux (tau, cs) with [] -> _die [%here] | l -> choose_from_list l
 
 let sample runtime qv =
   match SampleDomain.find_opt qv.ty runtime.sample_domain with
@@ -116,7 +116,12 @@ let send runtime (op, cs) =
 
 let recv_and_send runtime op =
   let rec aux = function
-    | [] -> _die_with [%here] @@ spf "runtime error: cannot recv message(%s)" op
+    | [] ->
+        let () =
+          Pp.printf
+            "@{<red>@{<bold>runtime error:@}@} cannot recv message(%s)\n" op
+        in
+        raise (RuntimeInconsistent runtime)
     | ((op', args) as elem) :: buffer ->
         if String.equal op op' then (args, buffer)
         else
