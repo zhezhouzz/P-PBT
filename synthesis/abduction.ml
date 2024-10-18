@@ -70,7 +70,43 @@ let do_abduction { bvs; bprop } (checker : gamma -> bool) (abd_vars, fvs) =
 
 let mk_abd_prop fvs = match fvs with [] -> None | _ -> Some (smart_or fvs)
 
-let build_fvtab lits =
+let mybuild_euf vars =
+  let space = Hashtbl.create 10 in
+  let () =
+    List.iter
+      (fun { x; ty } ->
+        match Hashtbl.find_opt space ty with
+        | None -> Hashtbl.add space ty [ x ]
+        | Some l -> Hashtbl.replace space ty (x :: l))
+      vars
+  in
+  let aux ty vars =
+    let pairs = List.combination_l vars 2 in
+    let pairs =
+      List.filter
+        (function [ x; y ] -> compare_lit Nt.compare_nt x y > 0 | _ -> false)
+        pairs
+    in
+    let eqlits =
+      List.map
+        (fun l ->
+          match l with [ x; y ] -> mk_lit_eq_lit ty x y | _ -> _die [%here])
+        pairs
+    in
+    eqlits
+  in
+  let res =
+    Hashtbl.fold
+      (fun ty vars res ->
+        if
+          List.length vars > 1 && not (Nt.equal_nt ty (Nt.Ty_uninter "Bytes.t"))
+        then aux ty vars @ res
+        else res)
+      space []
+  in
+  res
+
+let build_fvtab env lits =
   let () =
     Pp.printf "@{<bold>lits:@} %s\n" (List.split_by_comma layout_typed_lit lits)
   in
@@ -85,12 +121,35 @@ let build_fvtab lits =
         | _ -> false)
       lits
   in
-  let () =
-    Pp.printf "@{<bold>int lits:@} %s\n"
-      (List.split_by_comma layout_typed_lit lits)
+  let additional =
+    match get_opt env.tyctx ">" with
+    | None -> []
+    | Some _ ->
+        let int_lits =
+          List.filter (fun lit -> Nt.equal_nt Nt.Ty_int lit.ty) lits
+        in
+        let () =
+          Pp.printf "@{<bold>int lits:@} %s\n"
+            (List.split_by_comma layout_typed_lit int_lits)
+        in
+        let pairs = List.combination_l int_lits 2 in
+        let ltlits =
+          let lt = ">" #: Nt.(construct_arr_tp ([ Ty_int; Ty_int ], Ty_bool)) in
+          List.map
+            (fun l ->
+              match l with
+              | [ x; y ] -> AAppOp (lt, [ x; y ])
+              | _ -> _die [%here])
+            pairs
+        in
+        let () =
+          Pp.printf "@{<bold>ltlits:@} %s\n"
+            (List.split_by_comma layout_lit ltlits)
+        in
+        ltlits
   in
   let bvars = List.map _get_x bvars in
-  bvars @ build_euf lits
+  bvars @ mybuild_euf lits @ additional
 
 let mk_raw_all env =
   let l =
@@ -101,7 +160,7 @@ let mk_raw_all env =
 
 let check_regex_nonempty env checker (qvs, r) =
   (* let all = mk_raw_all env in *)
-  let () = Pp.printf "@{<bold>r@}: %s\n" (layout_symbolic_regex_precise r) in
+  (* let () = Pp.printf "@{<bold>r@}: %s\n" (layout_symbolic_regex_precise r) in *)
   let goals =
     Desymbolic.desymbolic_reg OriginalFA env.event_tyctx checker (qvs, r)
   in
@@ -134,7 +193,7 @@ let abduction_automata env { bvs; bprop } (a : SFA.raw_regex) abd_vars =
           (List.is_empty
           @@ List.interset String.equal (fv_lit_id lit)
                (List.map _get_x abd_vars)))
-      (build_euf @@ List.map (fun l -> l #: (lit_to_nt l)) lits)
+      (build_fvtab env @@ List.map (fun l -> l #: (lit_to_nt l)) lits)
   in
   let fvs = build_features { bvs; bprop } (abd_vars, lits) in
   let checker gamma (_, prop) = check_valid gamma prop in

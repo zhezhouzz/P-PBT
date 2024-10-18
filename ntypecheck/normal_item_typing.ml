@@ -78,6 +78,8 @@ let map_fa_haft f haft =
         RtyHAParallel { history; adding_se; parallel }
     | RtyArr { arg; argcty; retrty } ->
         RtyArr { arg; argcty; retrty = aux retrty }
+    | RtyGArr { arg; argnt; retrty } ->
+        RtyGArr { arg; argnt; retrty = aux retrty }
     | RtyInter (t1, t2) -> RtyInter (aux t1, aux t2)
   in
   aux haft

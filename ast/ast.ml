@@ -26,6 +26,7 @@ type 'r haft =
       adding_se : Nt.nt sevent;
       parallel : Nt.nt sevent list;
     }
+  | RtyGArr of { arg : string; argnt : Nt.nt; retrty : 'r haft }
   | RtyArr of { arg : string; argcty : cty; retrty : 'r haft }
   | RtyInter of 'r haft * 'r haft
 [@@deriving show, eq, ord]
@@ -121,6 +122,7 @@ let erase_cty { nt; _ } = nt
 let rec erase_rty = function
   | RtyBase cty -> erase_cty cty
   | RtyHAF _ | RtyHAParallel _ -> Nt.Ty_unit
+  | RtyGArr { retrty; _ } -> erase_rty retrty
   | RtyArr { argcty; retrty; _ } ->
       Nt.mk_arr (erase_cty argcty) (erase_rty retrty)
   | RtyInter (t1, t2) ->
@@ -132,7 +134,7 @@ let mk_haf (history, adding, future) = RtyHAF { history; adding; future }
 
 let rec is_singleton_haft = function
   | RtyBase _ | RtyHAF _ | RtyHAParallel _ -> true
-  | RtyArr { retrty; _ } -> is_singleton_haft retrty
+  | RtyGArr { retrty; _ } | RtyArr { retrty; _ } -> is_singleton_haft retrty
   | RtyInter _ -> false
 
 let rec haft_to_triple = function
@@ -172,14 +174,27 @@ let rctx_to_prefix rctx =
       (x' :: qvs, smart_add_to phi prop))
     (ctx_to_list rctx) ([], mk_true)
 
-let destruct_haft loc r =
+let destruct_haft_inner loc r =
   let rec aux r =
     match r with
     | RtyInter _ -> _die loc
+    | RtyGArr _ -> _die_with loc "never"
     | RtyBase _ | RtyHAF _ | RtyHAParallel _ -> ([], r)
     | RtyArr { argcty; retrty; arg } ->
         let args, t = aux retrty in
         ((arg #: argcty) :: args, t)
+  in
+  aux r
+
+let destruct_haft loc r =
+  let rec aux r =
+    match r with
+    | RtyInter _ -> _die loc
+    | RtyBase _ | RtyHAF _ | RtyHAParallel _ | RtyArr _ ->
+        ([], destruct_haft_inner loc r)
+    | RtyGArr { argnt; retrty; arg } ->
+        let args, t = aux retrty in
+        ((arg #: argnt) :: args, t)
   in
   aux r
 
@@ -208,7 +223,13 @@ let subst_haft name lit t =
         let parallel = List.map (subst_sevent_instance name lit) parallel in
         RtyHAParallel { history; adding_se; parallel }
     | RtyArr { arg; argcty; retrty } ->
-        RtyArr { arg; argcty = subst_cty name lit argcty; retrty = aux retrty }
+        if String.equal arg name then RtyArr { arg; argcty; retrty }
+        else
+          RtyArr
+            { arg; argcty = subst_cty name lit argcty; retrty = aux retrty }
+    | RtyGArr { arg; argnt; retrty } ->
+        if String.equal arg name then RtyGArr { arg; argnt; retrty }
+        else RtyGArr { arg; argnt; retrty = aux retrty }
     | RtyInter (t1, t2) -> RtyInter (aux t1, aux t2)
   in
   aux t
@@ -220,6 +241,10 @@ let rec fresh_haft t =
       let arg' = Rename.unique arg in
       let retrty = subst_haft arg (AVar arg' #: argcty.nt) retrty in
       RtyArr { arg = arg'; argcty; retrty }
+  | RtyGArr { arg; argnt; retrty } ->
+      let arg' = Rename.unique arg in
+      let retrty = subst_haft arg (AVar arg' #: argnt) retrty in
+      RtyGArr { arg = arg'; argnt; retrty }
   | RtyInter (t1, t2) -> RtyInter (fresh_haft t1, fresh_haft t2)
 
 open Zdatatype

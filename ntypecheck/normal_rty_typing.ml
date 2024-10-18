@@ -18,15 +18,35 @@ let rec bi_haft_check event_tyctx tyctx = function
       RtyHAF { history; adding; future }
   | RtyHAParallel { history; adding_se; parallel } ->
       let regex_ctx = mk_regex_ctx (event_tyctx, tyctx) in
+      let () =
+        Pp.printf "@{<bold>history@}: %s\n" (layout_symbolic_regex history)
+      in
+      let () =
+        Pp.printf "@{<bold>ctx@}: %s\n" (layout_ctx Nt.layout regex_ctx.tyctx)
+      in
       let history = _get_x @@ bi_symbolic_regex_check regex_ctx history in
       let adding_se = Typecheck.bi_sevent_check regex_ctx adding_se in
-      let parallel = List.map (Typecheck.bi_sevent_check regex_ctx) parallel in
+      let parallel =
+        List.map
+          (fun se ->
+            let () = Pp.printf "@{<bold>se@}: %s\n" (layout_se se) in
+            let () =
+              Pp.printf "@{<bold>ctx@}: %s\n"
+                (layout_ctx Nt.layout regex_ctx.tyctx)
+            in
+            Typecheck.bi_sevent_check regex_ctx se)
+          parallel
+      in
       RtyHAParallel { history; adding_se; parallel }
   | RtyArr { arg; argcty; retrty } ->
       let argcty = bi_cty_check tyctx argcty in
       let tyctx = add_to_right tyctx arg #: (erase_cty argcty) in
       let retrty = bi_haft_check event_tyctx tyctx retrty in
       RtyArr { arg; argcty; retrty }
+  | RtyGArr { arg; argnt; retrty } ->
+      let tyctx = add_to_right tyctx arg #: argnt in
+      let retrty = bi_haft_check event_tyctx tyctx retrty in
+      RtyGArr { arg; argnt; retrty }
   | RtyInter (t1, t2) ->
       RtyInter
         (bi_haft_check event_tyctx tyctx t1, bi_haft_check event_tyctx tyctx t2)

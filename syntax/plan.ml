@@ -50,12 +50,14 @@ let right_most_se plan =
 
 let merge_triple (pre, cur, post) = pre @ [ PlanSe cur ] @ post
 
-let remove_star loc =
-  List.filter (function
-    | PlanAct _ -> true
-    | PlanActBuffer _ -> _die_with loc "never"
-    | PlanSe _ -> _die_with loc "still have unsolved goal"
-    | PlanStar _ | PlanStarInv _ -> false)
+let remove_star loc plan =
+  List.filter
+    (function
+      | PlanAct _ -> true
+      | PlanActBuffer _ -> _die_with loc "never"
+      | PlanSe _ -> _die_with loc "still have unsolved goal"
+      | PlanStar _ | PlanStarInv _ -> false)
+    plan
 
 let value_to_lit = function VVar x -> AVar x | VConst c -> AC c
 
@@ -114,6 +116,9 @@ let smart_and_cur se1 elem =
       else None
   | PlanAct { op = op2; args } ->
       if String.equal op1 op2 then
+        let () = Pp.printf "op: %s\n" op1 in
+        let () = Pp.printf "vs1: %s\n" (layout_qvs vs1) in
+        let () = Pp.printf "args: %s\n" (layout_qvs args) in
         let phi_1' =
           List.fold_right
             (fun (x, y) -> subst_prop_instance x.x (AVar y))
@@ -142,7 +147,8 @@ let smart_and_cur_in_cs cs cur =
 
 let single_insert elem trace =
   let () =
-    Printf.printf "insert (%s) in %s\n" (layout_elem elem) (layout trace)
+    Printf.printf "insert (%s) in %s\n" (omit_layout_elem elem)
+      (omit_layout trace)
   in
   (* let se = (elem_to_se ctx) elem in *)
   let rec aux (res, pre) = function
@@ -199,26 +205,73 @@ let rec insert elems trace =
           List.map (fun c -> a @ [ b ] @ c) trace')
         l
 
+let comple_cs cs cs' =
+  let open SFA in
+  let cs =
+    CharSet.filter_map
+      (fun se ->
+        let op, vs, phi = _get_sevent_fields [%here] se in
+        let phis =
+          CharSet.fold
+            (fun se' phis ->
+              let op', _, phi' = _get_sevent_fields [%here] se' in
+              if String.equal op op' then phi' :: phis else phis)
+            cs' []
+        in
+        let phi = smart_add_to phi (Not (smart_or phis)) in
+        match phi with
+        | Not p when is_true p -> None
+        | _ -> Some (EffEvent { op; vs; phi }))
+      cs
+  in
+  cs
+
+let inter_cs cs1 cs2 =
+  let open SFA in
+  let cs =
+    CharSet.filter_map
+      (fun se ->
+        let op, vs, phi = _get_sevent_fields [%here] se in
+        let phis =
+          CharSet.fold
+            (fun se' phis ->
+              let op', _, phi' = _get_sevent_fields [%here] se' in
+              if String.equal op op' then phi' :: phis else phis)
+            cs2 []
+        in
+        let phi = smart_add_to phi (smart_or phis) in
+        if is_false phi then None else Some (EffEvent { op; vs; phi }))
+      cs1
+  in
+  cs
+
 let rec merge_plan_elem elem1 elem2 =
+  let res =
+    match (elem1, elem2) with
+    | PlanStar _, _ | _, PlanStar _ -> _die_with [%here] "unimp"
+    | PlanStarInv cs1, PlanStarInv cs2 -> Some (PlanStarInv (inter_cs cs1 cs2))
+    | PlanStarInv cs1, _ -> smart_and_cur_in_cs cs1 elem2
+    | _, PlanStarInv _ -> merge_plan_elem elem2 elem1
+    | PlanSe cur, _ -> smart_and_cur cur elem2
+    | _, PlanSe _ -> merge_plan_elem elem2 elem1
+    | (PlanAct _ | PlanActBuffer _), _ -> None
+  in
   let () =
     _log "plan" @@ fun _ ->
-    Pp.printf "@{<bold>merge@} (%s) @{<bold>in@} %s\n" (layout_elem elem1)
-      (layout_elem elem2)
+    Pp.printf "@{<bold>merge-elem@} %s @{<bold>with@} %s\n"
+      (omit_layout_elem elem1) (omit_layout_elem elem2)
   in
-  match (elem1, elem2) with
-  | PlanStar _, _ | _, PlanStar _ -> _die_with [%here] "unimp"
-  | PlanStarInv cs1, PlanStarInv cs2 ->
-      Some (PlanStarInv SFA.(unify_se @@ CharSet.union cs1 cs2))
-  | PlanStarInv cs1, _ -> smart_and_cur_in_cs cs1 elem2
-  | _, PlanStarInv _ -> merge_plan_elem elem2 elem1
-  | PlanSe cur, _ -> smart_and_cur cur elem2
-  | _, PlanSe _ -> merge_plan_elem elem2 elem1
-  | (PlanAct _ | PlanActBuffer _), _ -> None
+  let () =
+    _log "plan" @@ fun _ ->
+    Pp.printf "@{<bold>res merge-elem@} %s\n"
+      (layout_option omit_layout_elem res)
+  in
+  res
 
 let merge_plan l1 l2 =
   let () =
     _log "plan" @@ fun _ ->
-    Pp.printf "@{<bold>merge@} %s @{<bold>with@} %s\n" (omit_layout_plan l1)
+    Pp.printf "@{<bold>>>>merge@} %s @{<bold>with@} %s\n" (omit_layout_plan l1)
       (omit_layout_plan l2)
   in
   let mk_tab l =
@@ -291,7 +344,8 @@ let merge_plan l1 l2 =
       | (Some idx1', None) :: l' ->
           if idx1 > idx1' then []
           else if idx1 == idx1' - 1 then
-            cons_multi (idx1, idx2) (fill (idx1 + 1, idx2) l')
+            (cons_multi (idx1, idx2)
+            @@ cons_multi (idx1', idx2) (fill (idx1' + 1, idx2) l'))
             @ cons_multi (idx1, idx2) (fill (idx1, idx2 + 1) l)
           else
             cons_multi (idx1, idx2) (fill (idx1 + 1, idx2 + 1) l)
@@ -300,7 +354,8 @@ let merge_plan l1 l2 =
       | (None, Some idx2') :: l' ->
           if idx2 >= idx2' then []
           else if idx2 == idx2' - 1 then
-            cons_multi (idx1, idx2) (fill (idx1, idx2' + 1) l')
+            (cons_multi (idx1, idx2)
+            @@ cons_multi (idx1, idx2') (fill (idx1, idx2' + 1) l'))
             @ cons_multi (idx1, idx2) (fill (idx1 + 1, idx2) l)
           else
             cons_multi (idx1, idx2) (fill (idx1 + 1, idx2 + 1) l)
@@ -309,7 +364,8 @@ let merge_plan l1 l2 =
       | (Some idx1', Some idx2') :: l' ->
           if idx1 >= idx1' || idx2 >= idx2' then []
           else if idx1 == idx1' - 1 && idx2 == idx2' - 1 then
-            cons_multi (idx1', idx2') (fill (idx1' + 1, idx2' + 1) l')
+            cons_multi (idx1, idx2)
+            @@ cons_multi (idx1', idx2') (fill (idx1' + 1, idx2' + 1) l')
           else
             cons_multi (idx1, idx2) (fill (idx1 + 1, idx2 + 1) l)
             @ cons_multi (idx1, idx2) (fill (idx1, idx2 + 1) l)
@@ -318,12 +374,12 @@ let merge_plan l1 l2 =
   let l = List.concat_map (fill (0, 0)) l in
   let () =
     Hashtbl.iter
-      (fun idx elem -> Pp.printf "tab1[%i]: %s\n" idx (layout_elem elem))
+      (fun idx elem -> Pp.printf "tab1[%i]: %s\n" idx (omit_layout_elem elem))
       tab1
   in
   let () =
     Hashtbl.iter
-      (fun idx elem -> Pp.printf "tab2[%i]: %s\n" idx (layout_elem elem))
+      (fun idx elem -> Pp.printf "tab2[%i]: %s\n" idx (omit_layout_elem elem))
       tab2
   in
   let () =
@@ -337,12 +393,32 @@ let merge_plan l1 l2 =
     | [] -> Some res
     | (i, j) :: l ->
         let e1 = Hashtbl.find tab1 i in
-        let e2 = Hashtbl.find tab1 j in
+        let e2 = Hashtbl.find tab2 j in
         let* e = merge_plan_elem e1 e2 in
         f (res @ [ e ]) l
   in
   let l = List.filter_map (f []) l in
-  l
+  let choose_less ll =
+    let min_len =
+      List.fold_left
+        (fun res l ->
+          let len = List.length l in
+          match res with
+          | None -> Some len
+          | Some res -> if len < res then Some len else Some res)
+        None ll
+    in
+    match min_len with
+    | None -> ll
+    | Some len -> List.filter (fun l -> len == List.length l) ll
+  in
+  let res = choose_less l in
+  let () =
+    List.iteri
+      (fun idx l -> Pp.printf "@{<bold>res[%i]:@} %s\n" idx (omit_layout l))
+      res
+  in
+  res
 
 let elem_drop = function
   | PlanActBuffer { op; args; _ } -> PlanAct { op; args }

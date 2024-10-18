@@ -38,6 +38,8 @@ let rec layout_haft f = function
         else spf "{%s}" (layout_cty argcty)
       in
       spf "(%s:%s) → %s" arg str (layout_haft f retrty)
+  | RtyGArr { arg; argnt; retrty } ->
+      spf "(%s:%s) ⇢ %s" arg (Nt.layout argnt) (layout_haft f retrty)
   | RtyInter (haft1, haft2) ->
       spf "%s ⊓ %s" (layout_haft f haft1) (layout_haft f haft2)
 
@@ -47,7 +49,14 @@ let rec haft_of_expr expr =
   | Pexp_fun (_, haftexpr, pattern, body) -> (
       let retrty = haft_of_expr body in
       match haftexpr with
-      | None -> _die_with [%here] "wrong format"
+      | None ->
+          let x =
+            match pattern.ppat_desc with
+            | Ppat_constraint (name, ct) ->
+                (id_of_pattern name) #: (Nt.core_type_to_t ct)
+            | _ -> _die_with [%here] "wrong format"
+          in
+          RtyGArr { argnt = x.ty; arg = x.x; retrty }
       | Some haftexpr ->
           let arg = id_of_pattern pattern in
           let argcty = cty_of_expr haftexpr in
@@ -87,5 +96,7 @@ let rec locally_rename_haft ctx = function
       RtyHAParallel { history; adding_se; parallel }
   | RtyArr { arg; argcty; retrty } ->
       RtyArr { arg; argcty; retrty = locally_rename_haft ctx retrty }
+  | RtyGArr { arg; argnt; retrty } ->
+      RtyGArr { arg; argnt; retrty = locally_rename_haft ctx retrty }
   | RtyInter (haft1, haft2) ->
       RtyInter (locally_rename_haft ctx haft1, locally_rename_haft ctx haft2)

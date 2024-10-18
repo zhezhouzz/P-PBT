@@ -46,11 +46,12 @@ let layout_syn_plan_judgement (gamma, reg) =
   (* layout_planing_judgement gamma (Plan.layout reg) *)
   layout_planing_judgement gamma (Plan.omit_layout reg)
 
-let layout_syn_back_judgement (gamma, (pre, cur, post)) =
+let layout_plan_mid (pre, cur, post) =
   let open Plan in
-  layout_planing_judgement gamma
-    (spf "back [%s] %s [%s]" (omit_layout pre) (layout_elem cur)
-       (omit_layout post))
+  spf "back [%s] %s [%s]" (omit_layout pre) (layout_elem cur) (omit_layout post)
+
+let layout_syn_back_judgement (gamma, (pre, cur, post)) =
+  layout_planing_judgement gamma (layout_plan_mid (pre, cur, post))
 
 (* let layout_syn_tmp_judgement goal = *)
 (*   (\* let open SFA in *\) *)
@@ -73,20 +74,29 @@ let layout_syn_back_judgement (gamma, (pre, cur, post)) =
 (*   (\* let reg_str = DesymFA.layout_raw_regex res in *\) *)
 (*   spf "%s|- %s" ctx_str ".." *)
 
-let build_fvtab lits =
-  (* Remove boolean constants *)
-  let lits =
-    List.filter (function { x = AC (B _); _ } -> false | _ -> true) lits
-  in
-  let bvars, lits =
-    List.partition
-      (function
-        | { x = AVar x; _ } when Nt.equal_nt x.ty Nt.Ty_bool -> true
-        | _ -> false)
-      lits
-  in
-  let bvars = List.map _get_x bvars in
-  bvars @ build_euf lits
+(* let build_fvtab lits = *)
+(*   (\* Remove boolean constants *\) *)
+(*   let lits = *)
+(*     List.filter (function { x = AC (B _); _ } -> false | _ -> true) lits *)
+(*   in *)
+(*   let bvars, lits = *)
+(*     List.partition *)
+(*       (function *)
+(*         | { x = AVar x; _ } when Nt.equal_nt x.ty Nt.Ty_bool -> true *)
+(*         | _ -> false) *)
+(*       lits *)
+(*   in *)
+(*   let bvars = List.map _get_x bvars in *)
+(*   let int_lits = List.filter (fun lit -> Nt.equal_nt Nt.Ty_int lit.ty) lits in *)
+(*   let pairs = List.combination_l int_lits 2 in *)
+(*   let ltlits = *)
+(*     let lt = "<" #: Nt.(construct_arr_tp ([ Ty_int; Ty_int ], Ty_bool)) in *)
+(*     List.map *)
+(*       (fun l -> *)
+(*         match l with [ x; y ] -> AAppOp (lt, [ x; y ]) | _ -> _die [%here]) *)
+(*       pairs *)
+(*   in *)
+(*   bvars @ ltlits @ build_euf lits *)
 
 (* [@@@warning "-27"] *)
 (* [@@@warning "-26"] *)
@@ -110,49 +120,16 @@ let charset_to_se loc s =
 let se_to_raw_regex se = MultiChar (SFA.CharSet.singleton se)
 
 let raw_regex_to_cs r =
-  let open SFA in
   let rec aux r =
     match r with
     | MultiChar cs -> Some cs
     | Comple (cs, r) ->
         let* cs' = aux r in
-        let cs =
-          CharSet.filter_map
-            (fun se ->
-              let op, vs, phi = _get_sevent_fields [%here] se in
-              let phis =
-                CharSet.fold
-                  (fun se' phis ->
-                    let op', _, phi' = _get_sevent_fields [%here] se' in
-                    if String.equal op op' then phi' :: phis else phis)
-                  cs' []
-              in
-              let phi = smart_add_to phi (Not (smart_or phis)) in
-              match phi with
-              | Not p when is_true p -> None
-              | _ -> Some (EffEvent { op; vs; phi }))
-            cs
-        in
-        Some cs
+        Some (Plan.comple_cs cs cs')
     | Inters (r1, r2) ->
         let* cs1 = aux r1 in
         let* cs2 = aux r2 in
-        let cs =
-          CharSet.filter_map
-            (fun se ->
-              let op, vs, phi = _get_sevent_fields [%here] se in
-              let phis =
-                CharSet.fold
-                  (fun se' phis ->
-                    let op', _, phi' = _get_sevent_fields [%here] se' in
-                    if String.equal op op' then phi' :: phis else phis)
-                  cs2 []
-              in
-              let phi = smart_add_to phi (smart_or phis) in
-              if is_false phi then None else Some (EffEvent { op; vs; phi }))
-            cs1
-        in
-        Some cs
+        Some (Plan.inter_cs cs1 cs2)
     | _ -> None
   in
   aux r
@@ -372,6 +349,9 @@ let rec filter_rule_by_future op = function
   | RtyArr { arg; argcty; retrty } ->
       let* se, retrty = filter_rule_by_future op retrty in
       Some (se, RtyArr { arg; argcty; retrty })
+  | RtyGArr { arg; argnt; retrty } ->
+      let* se, retrty = filter_rule_by_future op retrty in
+      Some (se, RtyGArr { arg; argnt; retrty })
   | _ -> _die [%here]
 
 let select_rule_by_future env op =
@@ -392,7 +372,7 @@ let se_to_cur loc se =
   let op, vs, phi = _get_sevent_fields loc se in
   { op; vs; phi }
 
-let abduction_prop (qvs, local_vs, gprop, prop) =
+let abduction_prop env (qvs, local_vs, gprop, prop) =
   let () = Printf.printf "qvs: %s\n" (layout_qvs qvs) in
   let () = Printf.printf "gprop: %s\n" (layout_prop gprop) in
   let () = Printf.printf "qvs: %s\n" (layout_qvs local_vs) in
@@ -422,7 +402,7 @@ let abduction_prop (qvs, local_vs, gprop, prop) =
       List.map (fun x -> (AVar x) #: x.ty) qvs
       @ List.map (fun c -> (AC c) #: (constant_to_nt c)) cs
     in
-    let fvtab = build_fvtab lits in
+    let fvtab = Abduction.build_fvtab env lits in
     (* let () = *)
     (*   Printf.printf "fvtab: %s\n" @@ List.split_by_comma layout_lit @@ fvtab *)
     (* in *)
@@ -689,6 +669,7 @@ and deductive_synthesis_trace env goal : plan sgoal option =
   (* in *)
   let () = mk_preserve_subgoal (snd goal) in
   let* gamma, reg = handle goal in
+  let gamma, reg = Abduction.eliminate_buffer_plan (gamma, reg) in
   Some (gamma, Plan.remove_star [%here] reg)
 
 (* let rec aux res (pre, post) = *)
@@ -757,11 +738,14 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
         | Some x -> x
         | None -> _die [%here]
       in
-      let args, retrty = destruct_haft [%here] haft in
+      let gargs, (args, retrty) = destruct_haft [%here] haft in
       let history, dep_se, p = destruct_hap [%here] retrty in
+      let () = Pp.printf "@{<bold>dep_se:@} %s\n" (layout_se dep_se) in
       (* NOTE: history should be well-formed. *)
       let history_plan = raw_regex_to_plan history in
-      let () = Printf.printf "dep_se: %s\n" (layout_se dep_se) in
+      let () =
+        Pp.printf "@{<bold>history_plan:@} %s\n" (Plan.omit_layout history_plan)
+      in
       let dep_elem =
         (* NOTE: the payload should just conj of eq *)
         let op, _, _ = _get_sevent_fields [%here] dep_se in
@@ -802,11 +786,17 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
       let goals =
         List.concat_map
           (fun (f11, f12) ->
+            let () = Pp.printfBold "init post:" "\n" in
+            let () = Pp.printf "%s\n" @@ Plan.omit_layout_plan post in
             let posts = Plan.insert f12 post in
             (* let old_cur = EffEvent { op; vs; phi = smart_add_to phi' phi } in *)
             let f11' = dep_elem :: f11 in
             let pres =
               List.map (Plan.divide_by_elem dep_elem) @@ Plan.insert f11' pre
+            in
+            let () = Pp.printfBold "pres:" "\n" in
+            let () =
+              List.iter (fun p -> Pp.printf "%s\n" @@ layout_plan_mid p) pres
             in
             let pres =
               List.concat_map
@@ -814,6 +804,16 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
                   let pre1s = Plan.merge_plan history_plan pre1 in
                   List.map (fun pre1 -> (pre1, dep_elem', pre2)) pre1s)
                 pres
+            in
+            let () = Pp.printfBold "pres after merge:" "\n" in
+            let () =
+              List.iter (fun p -> Pp.printf "%s\n" @@ layout_plan_mid p) pres
+            in
+            let () = Pp.printfBold "posts:" "\n" in
+            let () =
+              List.iter
+                (fun p -> Pp.printf "%s\n" @@ Plan.omit_layout_plan p)
+                posts
             in
             let goals =
               List.map (fun ((pre1, dep_elem', pre2), post) ->
@@ -827,8 +827,12 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
       let () =
         Pp.printfBold "len(subgoals) " @@ spf "%i\n" (List.length goals)
       in
+      let () = Pp.printfBold "gargs:" @@ spf "%s\n" (layout_qvs gargs) in
+      let () = Pp.printfBold "args:" @@ spf "%s\n" (layout_qvs args) in
       let () = List.iter layout_syn_back_judgement goals in
-      let goals = List.map (fun (gamma, reg) -> (args, gamma, reg)) goals in
+      let goals =
+        List.map (fun (gamma, reg) -> (gargs @ args, gamma, reg)) goals
+      in
       goals
     in
     let rules = select_rule_by_future env op in
@@ -843,7 +847,7 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
         rules
     in
     let goals = List.concat_map handle rules in
-    (* let () = if String.equal op "eCoffeeMakerReady" then _die [%here] in *)
+    let () = if String.equal op "eWithDrawReq" then _die [%here] in
     let abd_and_backtract (args, gamma, mid_plan) =
       let () =
         Pp.printf "@{<bold>Before Abduction@}: ";
@@ -860,6 +864,14 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
         layout_syn_back_judgement goal
       in
       backward env goal
+    in
+    let goals =
+      List.sort
+        (fun (_, _, (a1, b1, c1)) (_, _, (a2, b2, c2)) ->
+          compare
+            (List.length (a1 @ [ b1 ] @ c1))
+            (List.length (a2 @ [ b2 ] @ c2)))
+        goals
     in
     (* let goals = List.map optimize_back_goal goals in *)
     backtrack abd_and_backtract goals
@@ -919,10 +931,10 @@ let quantifier_elimination (qvs, gprop, qv, local_qvs, prop) =
 let rec to_top_cnf phi =
   match phi with And ps -> List.concat_map to_top_cnf ps | _ -> [ phi ]
 
-let instantiation_var (gamma : Gamma.gamma) vs { bvs; bprop } =
+let instantiation_var env (gamma : Gamma.gamma) vs { bvs; bprop } =
   let cs = get_consts bprop in
   let lits = List.map tv_to_lit (gamma.bvs @ vs) @ List.map c_to_lit cs in
-  let fvtab = build_fvtab lits in
+  let fvtab = Abduction.build_fvtab env lits in
   let fvtab =
     List.filter
       (fun lit ->
@@ -999,7 +1011,7 @@ let instantiation env goal =
     | PlanAct { op; args } :: plan ->
         let fargs, qvs = get_fvargs gamma args gamma'.bvs in
         let gamma' = { bvs = qvs; bprop = gamma'.bprop } in
-        let gamma, prop' = instantiation_var gamma fargs gamma' in
+        let gamma, prop' = instantiation_var env gamma fargs gamma' in
         let e = handle gamma (gamma', plan) in
         if is_gen env op then
           (* let e = *)

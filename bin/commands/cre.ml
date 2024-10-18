@@ -62,6 +62,15 @@ let eval source_file output_file () =
   let () = Interpreter.interpret env term in
   ()
 
+let show_term output_file () =
+  let ic = In_channel.open_text output_file in
+  let sexp = Sexplib.Sexp.load_sexp output_file in
+  let term = term_of_sexp sexp in
+  let () =
+    Pp.printf "@{<bold>synthesized program:@}\n%s\n" (layout_term term)
+  in
+  ()
+
 let two_param message f =
   Command.basic ~summary:message
     Command.Let_syntax.(
@@ -123,9 +132,10 @@ let two_param_string message f =
 
 let cmds =
   [
-    ("read-syn", one_param "read_syn" read_syn);
-    ("syn-one", two_param_string "syn-one" syn_term);
+    ("read-syn", one_param "read syn" read_syn);
+    ("syn-one", two_param_string "syn one" syn_term);
     ("eval", two_param_string "eval" eval);
+    ("show-term", one_param "show term" show_term);
     (* ("read-automata", one_param "read_automata" read_automata); *)
     (* ("read-sfa", one_param "read_sfa" read_sfa); *)
     (* ("read-p", one_param "read_p" read_p); *)
