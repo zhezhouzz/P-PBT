@@ -28,7 +28,7 @@ let mk_synthesis_goal (env : syn_env) =
   let reg =
     desugar env.event_tyctx (SyntaxSugar (CtxOp { op_names; body = reg }))
   in
-  let reg = delimit_context delimit_cotexnt_se reg in
+  let reg = delimit_context reg in
   let () = Printf.printf "Original Reg: %s\n" (layout_symbolic_regex reg) in
   (Gamma.{ bvs = qvs; bprop = mk_true }, SFA.regex_to_raw reg)
 
@@ -140,7 +140,7 @@ let raw_regex_to_plan_elem r =
   match r with
   | MultiChar cs ->
       let se = charset_to_se [%here] cs in
-      let op, vs, phi = _get_sevent_fields [%here] se in
+      let op, vs, phi = _get_sevent_fields se in
       PlanSe { op; vs; phi }
   | Star r -> (
       match raw_regex_to_cs r with
@@ -156,8 +156,7 @@ let raw_regex_to_plan_elem r =
 open Gamma
 
 let add_global_prop_to_se p = function
-  | EffEvent { op; vs; phi } -> EffEvent { op; vs; phi = smart_add_to p phi }
-  | _ -> _die [%here]
+  | { op; vs; phi } -> { op; vs; phi = smart_add_to p phi }
 
 let add_global_prop_to_raw_reg prop =
   let open SFA in
@@ -323,9 +322,7 @@ let mk_cur loc r =
   match r with
   | MultiChar cur -> (
       let l = List.of_seq @@ CharSet.to_seq cur in
-      match l with
-      | [ EffEvent { op; vs; phi } ] -> { op; vs; phi }
-      | _ -> _die loc)
+      match l with [ { op; vs; phi } ] -> { op; vs; phi } | _ -> _die loc)
   | _ -> _die loc
 
 let rec filter_rule_by_future op = function
@@ -333,7 +330,7 @@ let rec filter_rule_by_future op = function
       (* HACK: assume each op only has one sevent. *)
       let ses, parallel' =
         List.partition
-          (fun se -> String.equal op (_get_sevent_name [%here] se))
+          (fun se -> String.equal op (_get_sevent_name se))
           parallel
       in
       match ses with
@@ -367,10 +364,6 @@ let select_rule_by_adding env op =
   match get_opt env.event_rtyctx op with
   | None -> _die [%here]
   | Some haft -> haft_to_triple @@ fresh_haft haft
-
-let se_to_cur loc se =
-  let op, vs, phi = _get_sevent_fields loc se in
-  { op; vs; phi }
 
 let abduction_prop env (qvs, local_vs, gprop, prop) =
   let () = Printf.printf "qvs: %s\n" (layout_qvs qvs) in
@@ -431,7 +424,7 @@ let abduction_prop env (qvs, local_vs, gprop, prop) =
 
 (* let mk_raw_all env = *)
 (*   let l = *)
-(*     List.map (fun x -> EffEvent { op = x.x; vs = x.ty; phi = mk_true }) *)
+(*     List.map (fun x ->  { op = x.x; vs = x.ty; phi = mk_true }) *)
 (*     @@ ctx_to_list env.event_tyctx *)
 (*   in *)
 (*   if List.length l == 0 then _die [%here] else SFA.CharSet.of_list l *)
@@ -598,19 +591,17 @@ let preserve_goals = ref SFA.CharSet.empty
 let mk_preserve_subgoal plan =
   preserve_goals :=
     SFA.CharSet.of_list
-    @@ List.filter_map
-         (function PlanSe cur -> Some (cur_to_se cur) | _ -> None)
-         plan
+    @@ List.filter_map (function PlanSe cur -> Some cur | _ -> None) plan
 
 let remove_preserve_subgoal elem =
   preserve_goals :=
     SFA.CharSet.remove
-      (match elem with PlanSe cur -> cur_to_se cur | _ -> _die [%here])
+      (match elem with PlanSe cur -> cur | _ -> _die [%here])
       !preserve_goals
 
 let in_preserve_subgoal elem =
   SFA.CharSet.mem
-    (match elem with PlanSe cur -> cur_to_se cur | _ -> _die [%here])
+    (match elem with PlanSe cur -> cur | _ -> _die [%here])
     !preserve_goals
 
 (* let counter = ref 0 *)
@@ -734,7 +725,7 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
           (layout_haft SFA.layout_raw_regex haft)
       in
       let elem =
-        match Plan.smart_and_cur (se_to_cur [%here] se) elem with
+        match Plan.smart_and_se se elem with
         | Some x -> x
         | None -> _die [%here]
       in
@@ -748,13 +739,13 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
       in
       let dep_elem =
         (* NOTE: the payload should just conj of eq *)
-        let op, _, _ = _get_sevent_fields [%here] dep_se in
+        let op, _, _ = _get_sevent_fields dep_se in
         let args = List.map (fun x -> x.x #: x.ty.nt) args in
         PlanAct { op; args }
       in
       (* let () = Printf.printf "dep_elem: %s\n" (Plan.layout_elem dep_elem) in *)
       (* let* gprop = *)
-      (*   let _, _, phi' = _get_sevent_fields [%here] se in *)
+      (*   let _, _, phi' = _get_sevent_fields  se in *)
       (*   let { op; vs; phi } = Plan.elem_to_cur env.event_tyctx elem in *)
       (*   abduction goal args (vs, phi, phi') *)
       (* in *)
@@ -763,11 +754,11 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
       (* let qvs, bprop, p = *)
       (*   List.fold_left *)
       (*     (fun (qvs, bprop, p) se -> *)
-      (*       (\* let args, phi, elem = cur_to_obs @@ se_to_cur [%here] se in *\) *)
-      (*        (qvs @ args, bprop, p @ [ PlanSe (se_to_cur [%here] se) ])) *)
+      (*       (\* let args, phi, elem = cur_to_obs @@  se in *\) *)
+      (*        (qvs @ args, bprop, p @ [ PlanSe ( se) ])) *)
       (*     (qvs, bprop, []) p *)
       (* in *)
-      let p = List.map (fun se -> PlanSe (se_to_cur [%here] se)) p in
+      let p = List.map (fun se -> PlanSe se) p in
       let fs = Plan.parallel_interleaving p in
       let () =
         List.iter
@@ -789,7 +780,7 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
             let () = Pp.printfBold "init post:" "\n" in
             let () = Pp.printf "%s\n" @@ Plan.omit_layout_plan post in
             let posts = Plan.insert f12 post in
-            (* let old_cur = EffEvent { op; vs; phi = smart_add_to phi' phi } in *)
+            (* let old_cur =  { op; vs; phi = smart_add_to phi' phi } in *)
             let f11' = dep_elem :: f11 in
             let pres =
               List.map (Plan.divide_by_elem dep_elem) @@ Plan.insert f11' pre

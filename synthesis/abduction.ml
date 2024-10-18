@@ -153,7 +153,7 @@ let build_fvtab env lits =
 
 let mk_raw_all env =
   let l =
-    List.map (fun x -> EffEvent { op = x.x; vs = x.ty; phi = mk_true })
+    List.map (fun x -> { op = x.x; vs = x.ty; phi = mk_true })
     @@ ctx_to_list env.event_tyctx
   in
   if List.length l == 0 then _die [%here] else SFA.CharSet.of_list l
@@ -216,7 +216,7 @@ let abduction_mid_goal env gamma (plan1, elem, plan2) abd_vars =
   match fvs with
   | [] ->
       let () =
-        if String.equal (Plan.elem_to_cur env.event_tyctx elem).op "putReq" then
+        if String.equal (Plan.elem_to_se env.event_tyctx elem).op "putReq" then
           _die [%here]
       in
       None

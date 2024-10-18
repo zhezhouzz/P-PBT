@@ -70,8 +70,8 @@ let rec haft_of_expr expr =
       match f.pexp_desc with
       | Pexp_array es ->
           let history = symbolic_regex_of_expr h in
-          let adding_se = Prop.sevent_of_expr a in
-          let parallel = List.map Prop.sevent_of_expr es in
+          let adding_se = sevent_of_expr a in
+          let parallel = List.map sevent_of_expr es in
           RtyHAParallel { history; adding_se; parallel }
       | _ ->
           let history, adding = map2 symbolic_regex_of_expr (h, a) in

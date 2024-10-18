@@ -25,7 +25,7 @@ let rec bi_haft_check event_tyctx tyctx = function
         Pp.printf "@{<bold>ctx@}: %s\n" (layout_ctx Nt.layout regex_ctx.tyctx)
       in
       let history = _get_x @@ bi_symbolic_regex_check regex_ctx history in
-      let adding_se = Typecheck.bi_sevent_check regex_ctx adding_se in
+      let adding_se = bi_sevent_check regex_ctx adding_se in
       let parallel =
         List.map
           (fun se ->
@@ -34,7 +34,7 @@ let rec bi_haft_check event_tyctx tyctx = function
               Pp.printf "@{<bold>ctx@}: %s\n"
                 (layout_ctx Nt.layout regex_ctx.tyctx)
             in
-            Typecheck.bi_sevent_check regex_ctx se)
+            bi_sevent_check regex_ctx se)
           parallel
       in
       RtyHAParallel { history; adding_se; parallel }

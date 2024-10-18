@@ -63,9 +63,6 @@ type 'r item =
   | SynGoal of syn_goal
 [@@deriving show, eq, ord]
 
-type cur = { op : string; vs : (Nt.nt, string) typed list; phi : Nt.nt prop }
-[@@deriving show, eq, ord]
-
 type plan_elem =
   | PlanAct of { op : string; args : (Nt.nt, string) typed list }
   | PlanActBuffer of {
@@ -73,7 +70,7 @@ type plan_elem =
       args : (Nt.nt, string) typed list;
       phi : Nt.nt prop;
     }
-  | PlanSe of cur
+  | PlanSe of Nt.nt sevent
   | PlanStarInv of SFA.CharSet.t
   | PlanStar of SFA.CharSet.t raw_regex
 [@@deriving eq, ord]

@@ -53,9 +53,8 @@ let reduce_cty c ({ phi; _ } : cty) =
   eval_prop (StrMap.singleton default_v c) phi
 
 let reduce_sevent (op', cs) = function
-  | EffEvent { op; vs; phi } ->
+  | { op; vs; phi } ->
       String.equal op op' && eval_prop (store_add (vs, cs) StrMap.empty) phi
-  | _ -> _die [%here]
 
 let reduce_haft (l, cs) (tau : SFA.raw_regex haft) =
   let rec aux (tau, cs) =
@@ -98,11 +97,10 @@ let mk_assume runtime (vs, prop) =
   { runtime with store = store' }
 
 let sample_event runtime = function
-  | EffEvent { op; vs; phi } ->
+  | { op; vs; phi } ->
       let store = sample_phi runtime (vs, phi) in
       let cs = List.map snd store in
       (op, cs)
-  | _ -> _die [%here]
 
 let send runtime (op, cs) =
   let tau = _get_force [%here] runtime.event_rtyctx op in

@@ -10,7 +10,7 @@ let init_env =
     event_rtyctx = emp;
   }
 
-let add_to_env env = function
+let add_to_env (env : syn_env) = function
   | PrimDecl { name; nt } ->
       { env with tyctx = add_to_right env.tyctx name #: nt }
   | MsgNtDecl { generative; name; nt } ->
@@ -52,7 +52,7 @@ let add_to_env env = function
 (*   in *)
 (*   { goal; event_tyctx; gen_ctx; tyctx; event_rtyctx = emp } *)
 
-let handle_reg env reg =
+let handle_reg (env : syn_env) reg =
   let op_names = List.map _get_x (ctx_to_list env.event_tyctx) in
   (* let () = *)
   (*   Pp.printf "@{<bold>Before:@} %s\n" (layout_symbolic_regex_precise reg) *)
@@ -63,7 +63,7 @@ let handle_reg env reg =
   (* let () = *)
   (*   Pp.printf "@{<bold>After:@} %s\n" (layout_symbolic_regex_precise reg) *)
   (* in *)
-  let reg = delimit_context delimit_cotexnt_se reg in
+  let reg = delimit_context reg in
   reg
 
 let map_fa_haft f haft =
@@ -84,11 +84,11 @@ let map_fa_haft f haft =
   in
   aux haft
 
-let handle_haft env haft =
+let handle_haft (env : syn_env) haft =
   map_fa_haft (fun r -> SFA.regex_to_raw @@ handle_reg env r) haft
 
 (* NOTE: the whole spec items are first-order *)
-let item_check env = function
+let item_check (env : syn_env) = function
   | MsgDecl { name; haft } ->
       let haft =
         Normal_rty_typing.bi_haft_check env.event_tyctx env.tyctx haft

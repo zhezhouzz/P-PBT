@@ -46,9 +46,3 @@ let destruct_cty_var x =
   let x' = x.x #: x.ty.nt in
   let phi = subst_prop_instance default_v (AVar x') x.ty.phi in
   (x', phi)
-
-let se_to_cur loc se =
-  let op, vs, phi = _get_sevent_fields loc se in
-  { op; vs; phi }
-
-let cur_to_se { op; vs; phi } = EffEvent { op; vs; phi }
