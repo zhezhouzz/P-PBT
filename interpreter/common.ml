@@ -13,6 +13,7 @@ let const_to_bool loc = function B b -> b | _ -> _die_with loc "never"
 let eval_app_op op cs =
   match (op.x, cs) with
   | "==", [ a; b ] -> B (equal_constant a b)
+  | ">", [ I a; I b ] -> B (a > b)
   | _ -> _die_with [%here] "unimp"
 
 let eval_lit store lit =

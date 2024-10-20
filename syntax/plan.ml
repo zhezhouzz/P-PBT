@@ -95,7 +95,8 @@ let elem_to_raw_regex ctx elem =
   | PlanStar r -> Star r
   | PlanStarInv cs -> Star (MultiChar cs)
 
-let plan_to_raw_regex ctx plan = SFA.seq (List.map (elem_to_raw_regex ctx) plan)
+let plan_to_raw_regex ctx plan =
+  SFA.smart_seq (List.map (elem_to_raw_regex ctx) plan)
 
 let smart_and_se se1 elem =
   let () =
@@ -121,6 +122,7 @@ let smart_and_se se1 elem =
             (_safe_combine [%here] vs1 args)
             phi_1
         in
+        let () = Pp.printf "phi_1': %s\n" (layout_prop phi_1') in
         Some (PlanActBuffer { op = op2; args; phi = phi_1' })
       else None
   | PlanActBuffer { op = op2; args; phi = phi_2 } ->

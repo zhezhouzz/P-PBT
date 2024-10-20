@@ -31,6 +31,8 @@ let default_sample_domain =
   @@ [
        (Nt.Ty_int, List.map (fun n -> I n) [ -1; 0; 1; 2 ]);
        (Nt.Ty_bool, List.map (fun n -> B n) [ true; false ]);
+       (Nt.Ty_constructor ("rid", []), List.map (fun n -> I n) [ 1; 2 ]);
+       (Nt.Ty_constructor ("aid", []), List.map (fun n -> I n) [ 3; 4 ]);
      ]
 
 let init_runtime (env : syn_env) sample_domain =
@@ -56,11 +58,32 @@ let reduce_sevent (op', cs) = function
   | { op; vs; phi } ->
       String.equal op op' && eval_prop (store_add (vs, cs) StrMap.empty) phi
 
-let reduce_haft (l, cs) (tau : SFA.raw_regex haft) =
+let sample runtime qv =
+  match SampleDomain.find_opt qv.ty runtime.sample_domain with
+  | None ->
+      let () =
+        Printf.printf "cannot find sample domain of type (%s)\n"
+          (Nt.layout qv.ty)
+      in
+      _die [%here]
+  | Some cs -> (qv.x, choose_from_list cs)
+
+let reduce_haft runtime cs (tau : SFA.raw_regex haft) =
   let rec aux (tau, cs) =
     match (tau, cs) with
     | RtyHAParallel { history; parallel; _ }, [] ->
-        if Derivative.is_match reduce_sevent history l then [ parallel ] else []
+        if SFA.is_match reduce_sevent history runtime.trace then [ parallel ]
+        else []
+    | RtyGArr { arg; argnt; retrty }, cs ->
+        let samples = SampleDomain.find argnt runtime.sample_domain in
+        let ress =
+          List.concat_map
+            (fun c ->
+              let retrty = subst_haft arg (AC c) retrty in
+              aux (retrty, cs))
+            samples
+        in
+        ress
     | RtyArr { arg; argcty; retrty }, c :: cs ->
         if reduce_cty c argcty then
           let retrty = subst_haft arg (AC c) retrty in
@@ -70,11 +93,6 @@ let reduce_haft (l, cs) (tau : SFA.raw_regex haft) =
     | _, _ -> _die [%here]
   in
   match aux (tau, cs) with [] -> _die [%here] | l -> choose_from_list l
-
-let sample runtime qv =
-  match SampleDomain.find_opt qv.ty runtime.sample_domain with
-  | None -> _die [%here]
-  | Some cs -> (qv.x, choose_from_list cs)
 
 let sample_phi runtime (vs, prop) =
   let rec aux (n : int) =
@@ -104,7 +122,7 @@ let sample_event runtime = function
 
 let send runtime (op, cs) =
   let tau = _get_force [%here] runtime.event_rtyctx op in
-  let ses = reduce_haft (runtime.trace, cs) tau in
+  let ses = reduce_haft runtime cs tau in
   let msgs = List.map (sample_event runtime) ses in
   {
     runtime with

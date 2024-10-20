@@ -1,0 +1,19 @@
+(library
+ (public_name haft.rawdesym)
+ (name rawdesym)
+ (wrapped true)
+ (libraries  zutils AutomataLibrary core compiler-libs)
+ (modules
+   common
+   intBinary
+   desymeval
+   resym
+   desymctx
+   satcheck
+   head
+   mapping
+   rawdesym
+ )
+ (inline_tests)
+ (preprocess (pps ppx_here ppx_inline_test))
+)

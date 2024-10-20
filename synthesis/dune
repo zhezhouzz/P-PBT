@@ -2,7 +2,7 @@
  (name synthesis)
  (public_name haft.synthesis)
  (wrapped true)
- (libraries syntax language)
+ (libraries syntax language rawdesym)
  (modules
   synthesis
   gamma

@@ -173,47 +173,47 @@ let add_global_prop_to_raw_reg prop =
   in
   aux
 
-let reduce_symbolic_regex env checker r =
-  let open SFA in
-  let r = unify_raw_regex r in
-  let rec aux r =
-    match r with
-    | Empty | Eps | MultiChar _ -> [ (mk_true, r) ]
-    | Alt (r1, r2) -> aux r1 @ aux r2
-    | Seq [] -> [ (mk_true, Eps) ]
-    | Seq (r :: rs) ->
-        let r2 = aux (Seq rs) in
-        let r1 = aux r in
-        List.map (fun ((p1, r1), (p2, r2)) ->
-            (smart_add_to p1 p2, seq [ r1; r2 ]))
-        @@ List.cross r1 r2
-    | Star r ->
-        let l =
-          Desymbolic.desymbolic_reg OriginalFA env.event_tyctx checker
-            ([], SFA.raw_regex_to_regex r)
-        in
-        let l =
-          List.map
-            (fun (bprop, backward_maping, reg) ->
-              (bprop, raw_reg_map backward_maping (DesymFA.regex_to_raw reg)))
-            l
-        in
-        let ps, rs = List.split l in
-        [ (smart_and ps, Star (alt_list rs)) ]
-    | Inters _ | Comple _ ->
-        let l =
-          Desymbolic.desymbolic_reg OriginalFA env.event_tyctx checker
-            ([], SFA.raw_regex_to_regex r)
-        in
-        let l =
-          List.map
-            (fun (bprop, backward_maping, reg) ->
-              (bprop, raw_reg_map backward_maping (DesymFA.regex_to_raw reg)))
-            l
-        in
-        l
-  in
-  List.map (fun (p, r) -> (p, unify_raw_regex r)) @@ aux r
+(* let reduce_symbolic_regex env checker r = *)
+(*   let open SFA in *)
+(*   let r = unify_raw_regex r in *)
+(*   let rec aux r = *)
+(*     match r with *)
+(*     | Empty | Eps | MultiChar _ -> [ (mk_true, r) ] *)
+(*     | Alt (r1, r2) -> aux r1 @ aux r2 *)
+(*     | Seq [] -> [ (mk_true, Eps) ] *)
+(*     | Seq (r :: rs) -> *)
+(*         let r2 = aux (Seq rs) in *)
+(*         let r1 = aux r in *)
+(*         List.map (fun ((p1, r1), (p2, r2)) -> *)
+(*             (smart_add_to p1 p2, smart_seq [ r1; r2 ])) *)
+(*         @@ List.cross r1 r2 *)
+(*     | Star r -> *)
+(*         let l = *)
+(*           Desymbolic.desymbolic_reg OriginalFA env.event_tyctx checker *)
+(*             ([], SFA.raw_regex_to_regex r) *)
+(*         in *)
+(*         let l = *)
+(*           List.map *)
+(*             (fun (bprop, backward_maping, reg) -> *)
+(*               (bprop, raw_reg_map backward_maping (DesymFA.regex_to_raw reg))) *)
+(*             l *)
+(*         in *)
+(*         let ps, rs = List.split l in *)
+(*         [ (smart_and ps, smart_star (smart_alt_list rs)) ] *)
+(*     | Inters _ | Comple _ -> *)
+(*         let l = *)
+(*           Desymbolic.desymbolic_reg OriginalFA env.event_tyctx checker *)
+(*             ([], SFA.raw_regex_to_regex r) *)
+(*         in *)
+(*         let l = *)
+(*           List.map *)
+(*             (fun (bprop, backward_maping, reg) -> *)
+(*               (bprop, raw_reg_map backward_maping (DesymFA.regex_to_raw reg))) *)
+(*             l *)
+(*         in *)
+(*         l *)
+(*   in *)
+(*   List.map (fun (p, r) -> (p, unify_raw_regex r)) @@ aux r *)
 
 let raw_regex_to_plan =
   let rec aux r =
@@ -248,7 +248,7 @@ let normalize_desym_regex2 (rawreg : DesymFA.raw_regex) =
   let rec aux rawreg =
     match rawreg with
     | Empty | Eps | MultiChar _ -> rawreg
-    | Alt (r1, r2) -> alt (aux r1) (aux r2)
+    | Alt (r1, r2) -> smart_alt (aux r1) (aux r2)
     | Comple (cs1, Comple (cs2, r)) ->
         let () =
           Pp.printf "@{<bold>double comp@}: %s\n" (layout_raw_regex rawreg)
@@ -273,49 +273,87 @@ let normalize_desym_regex2 (rawreg : DesymFA.raw_regex) =
           Pp.printf "@{<bold>opt inters@}: %s\n" (layout_raw_regex rawreg)
         in
         do_normalize_desym_regex rawreg
-    | Seq l -> seq (List.map aux l)
+    | Seq l -> smart_seq (List.map aux l)
     | Star r -> Star (do_normalize_desym_regex r)
   in
   aux rawreg
 
-let normalize_goal env ({ bvs; bprop = old_bprop }, reg) =
+let normalize_gamma env { bvs; bprop } r =
+  let ftab = Rawdesym.mk_global_ftab env.tyctx (bvs, bprop, r) in
+  let () = _assert [%here] "assume start from true" (is_true bprop) in
+  let fvecs =
+    List.of_seq @@ Rawdesym.BlistSet.to_seq @@ Rawdesym.mk_fvec_from_ftab ftab
+  in
+  let _, lit2int = Rawdesym.mk_li_map ftab in
+  let props = List.map (fun l -> Rawdesym.blist_to_prop l lit2int) fvecs in
+  let props =
+    List.filter (fun p -> Prover.check_sat_bool (smart_exists bvs p)) props
+  in
+  List.map (fun bprop -> { bvs; bprop }) props
+
+let normalize_goal_aux env (gamma, reg) =
   let () =
     Pp.printf "\n@{<bold>Before Normalize:@}\n%s\n" (SFA.layout_raw_regex reg)
   in
-  let checker (_, prop) =
-    let () = Printf.printf "check: %s\n" (layout_prop prop) in
-    Prover.check_sat_bool (And [ old_bprop; prop ])
+  let desym_ctx, reg =
+    Rawdesym.desymbolic_symbolic_rewregex env.tyctx env.event_tyctx
+      (gamma.bprop, reg)
   in
-  let goals =
-    Desymbolic.desymbolic_reg OriginalFA env.event_tyctx checker
-      (bvs, SFA.raw_regex_to_regex reg)
-  in
+  let reg = Rawdesym.normalize_desym_regex reg in
   let open DesymFA in
-  let goals =
-    List.concat_map
-      (fun (bprop, backward_maping, reg) ->
-        let () =
-          Printf.printf "reg: %s\n" (layout_raw_regex (regex_to_raw reg))
-        in
-        let reg = normalize_desym_regex2 @@ regex_to_raw reg in
-        let () = Pp.printf "@{<bold>reg@}: %s\n" (layout_raw_regex reg) in
-        if is_empty_raw_regex reg then []
-        else
-          let unf =
-            DesymFA.raw_regex_to_union_normal_form unify_charset_by_op reg
-          in
-          let unf = List.map (List.map (raw_reg_map backward_maping)) unf in
-          let unf =
-            List.map
-              (fun l ->
-                ( { bvs; bprop = smart_add_to bprop old_bprop },
-                  List.map raw_regex_to_plan_elem l ))
-              unf
-          in
-          unf)
-      goals
+  let () = Printf.printf "reg: %s\n" (layout_raw_regex reg) in
+  if emptiness reg then []
+  else
+    let unf = raw_regex_to_union_normal_form unify_charset_by_op reg in
+    let unf = List.map (List.map (Rawdesym.resym_regex desym_ctx)) unf in
+    let unf =
+      List.map (fun l -> (gamma, List.map raw_regex_to_plan_elem l)) unf
+    in
+    unf
+
+let normalize_goal env (gamma, reg) =
+  let gammas = normalize_gamma env gamma reg in
+  let res =
+    List.concat_map (fun gamma -> normalize_goal_aux env (gamma, reg)) gammas
   in
-  goals
+  (* let () = Pp.printf "@{<bold>Goals:\n@}" in *)
+  (* let () = List.iter layout_syn_plan_judgement res in *)
+  (* let () = _die [%here] in *)
+  res
+
+(* let checker (_, prop) = *)
+(*   let () = Printf.printf "check: %s\n" (layout_prop prop) in *)
+(*   Prover.check_sat_bool (And [ old_bprop; prop ]) *)
+(* in *)
+(* let goals = *)
+(*   Desymbolic.desymbolic_reg OriginalFA env.event_tyctx checker *)
+(*     (bvs, SFA.raw_regex_to_regex reg) *)
+(* in *)
+(* let goals = *)
+(*   List.concat_map *)
+(*     (fun (bprop, backward_maping, reg) -> *)
+(*       let () = *)
+(*         Printf.printf "reg: %s\n" (layout_raw_regex (regex_to_raw reg)) *)
+(*       in *)
+(*       let reg = normalize_desym_regex2 @@ regex_to_raw reg in *)
+(*       let () = Pp.printf "@{<bold>reg@}: %s\n" (layout_raw_regex reg) in *)
+(*       if is_empty_raw_regex reg then [] *)
+(*       else *)
+(*         let unf = *)
+(*           DesymFA.raw_regex_to_union_normal_form unify_charset_by_op reg *)
+(*         in *)
+(*         let unf = List.map (List.map (raw_reg_map backward_maping)) unf in *)
+(*         let unf = *)
+(*           List.map *)
+(*             (fun l -> *)
+(*               ( { bvs; bprop = smart_add_to bprop old_bprop }, *)
+(*                 List.map raw_regex_to_plan_elem l )) *)
+(*             unf *)
+(*         in *)
+(*         unf) *)
+(*     (bvs, reg) *)
+(* in *)
+(* goals *)
 
 let mk_cur loc r =
   let open SFA in
@@ -436,7 +474,7 @@ let abduction_prop env (qvs, local_vs, gprop, prop) =
 
 (* let trace_to_raw_regex = function *)
 (*   | [] -> Eps *)
-(*   | _ as l -> List.left_reduce [%here] SFA.alt l *)
+(*   | _ as l -> List.left_reduce [%here] SFA.smart_alt l *)
 
 (* let inter_trace env { qvs; bprop; reg = tr1, tr2 } = *)
 (*   let r1, r2 = map2 trace_to_raw_regex (tr1, tr2) in *)
@@ -569,18 +607,24 @@ let eq_in_prop_to_subst_map { bvs; bprop } =
   let bprop = simpl_eq_in_prop prop in
   ({ bvs; bprop }, m)
 
-let optimize_back_goal ((gamma, (a, b, c)) as goal) =
+let optimize_back_goal ((gamma, (a, b, c)) as goal) args =
+  let gamma = Gamma.simplify gamma in
   let gamma, m = eq_in_prop_to_subst_map gamma in
   let a, c = map2 (msubst Plan.subst_plan m) (a, c) in
   let b = msubst Plan.subst_elem m b in
   let goal' = (gamma, (a, b, c)) in
+  let args' =
+    List.filter
+      (fun x -> not (List.exists (fun (y, _) -> String.equal x.x y) m))
+      args
+  in
   let () =
-    Printf.printf "Optimize:\n";
+    Printf.printf "Optimize:\n (%s)\n" (layout_qvs args);
     layout_syn_back_judgement goal;
-    Printf.printf "==>\n";
+    Printf.printf "==>\n (%s) \n" (layout_qvs args');
     layout_syn_back_judgement goal'
   in
-  goal'
+  (args', goal')
 
 let optimize_goal ((gamma, reg) : plan sgoal) =
   let gamma, m = eq_in_prop_to_subst_map gamma in
@@ -708,6 +752,7 @@ and forward (gamma, (pre, elem, post)) =
   (gamma, (pre, elem, post))
 
 and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
+  let () = Pp.printf "@{<bold>@{<yellow>backward@}@}\n" in
   let () = layout_syn_back_judgement goal in
   let goal = forward goal in
   let gamma, (pre, elem, post) = goal in
@@ -750,7 +795,10 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
       (*   abduction goal args (vs, phi, phi') *)
       (* in *)
       let args, arg_phis = List.split @@ List.map destruct_cty_var args in
-      let gamma = { gamma with bprop = smart_and (gamma.bprop :: arg_phis) } in
+      let gamma =
+        Gamma.simplify
+          { gamma with bprop = smart_and (gamma.bprop :: arg_phis) }
+      in
       (* let qvs, bprop, p = *)
       (*   List.fold_left *)
       (*     (fun (qvs, bprop, p) se -> *)
@@ -841,20 +889,22 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
     let () = if String.equal op "eWithDrawReq" then _die [%here] in
     let abd_and_backtract (args, gamma, mid_plan) =
       let () =
-        Pp.printf "@{<bold>Before Abduction@}: ";
+        Pp.printf "@{<bold>Before Abduction [%s]@}: " (layout_qvs args);
         layout_syn_back_judgement (gamma, mid_plan)
       in
-      let* gamma' = Abduction.abduction_mid_goal env gamma mid_plan args in
+      let args', (gamma, mid_plan) =
+        optimize_back_goal (gamma, mid_plan) args
+      in
+      let () =
+        Pp.printf "@{<bold>After Opt@}: (%s)\n" (layout_qvs args');
+        layout_syn_back_judgement (gamma, mid_plan)
+      in
+      let* gamma' = Abduction.abduction_mid_goal env gamma mid_plan args' in
       let () =
         Pp.printf "@{<bold>After Abduction@}: ";
         layout_syn_back_judgement (gamma', mid_plan)
       in
-      let goal = optimize_back_goal (gamma', mid_plan) in
-      let () =
-        Pp.printf "@{<bold>After Opt@}: ";
-        layout_syn_back_judgement goal
-      in
-      backward env goal
+      backward env (gamma', mid_plan)
     in
     let goals =
       List.sort
@@ -1000,6 +1050,10 @@ let instantiation env goal =
     match plan with
     | [] -> if 0 == List.length gamma'.bvs then mk_term_tt else _die [%here]
     | PlanAct { op; args } :: plan ->
+        let () =
+          Pp.printf "@{<bold>Work on:@} %s\n"
+            (Plan.layout_elem (PlanAct { op; args }))
+        in
         let fargs, qvs = get_fvargs gamma args gamma'.bvs in
         let gamma' = { bvs = qvs; bprop = gamma'.bprop } in
         let gamma, prop' = instantiation_var env gamma fargs gamma' in

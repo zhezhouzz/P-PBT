@@ -237,11 +237,11 @@ let rec fresh_haft t =
   | RtyArr { arg; argcty; retrty } ->
       let arg' = Rename.unique arg in
       let retrty = subst_haft arg (AVar arg' #: argcty.nt) retrty in
-      RtyArr { arg = arg'; argcty; retrty }
+      RtyArr { arg = arg'; argcty; retrty = fresh_haft retrty }
   | RtyGArr { arg; argnt; retrty } ->
       let arg' = Rename.unique arg in
       let retrty = subst_haft arg (AVar arg' #: argnt) retrty in
-      RtyGArr { arg = arg'; argnt; retrty }
+      RtyGArr { arg = arg'; argnt; retrty = fresh_haft retrty }
   | RtyInter (t1, t2) -> RtyInter (fresh_haft t1, fresh_haft t2)
 
 open Zdatatype
