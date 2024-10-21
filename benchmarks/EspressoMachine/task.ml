@@ -1,4 +1,4 @@
-(* val ( == ) : 'a -> 'a -> bool *)
+val ( == ) : 'a -> 'a -> bool
 
 (** message from env to panel *)
 
@@ -37,13 +37,22 @@ let eEspressoButtonPressed =
 (** message from panel to env *)
 
 (* event: error message from panel to the user
-   false: NoBeansError
-   true: NoWaterError
+   1: NotWarmedUp,
+   2: Ready,
+   3: NoBeansError,
+   4: NoWaterError
 *)
-val eCoffeeMakerError : < st : bool > [@@obsRecv]
 
-let eCoffeeMakerError ?l:(x = (true : [%v: bool])) =
-  (allA, ECoffeeMakerError (iff st x), [||])
+val eCoffeeMakerError :
+  < st : (notWaredUp * ready * noBeansError * noWaterError[@status]) >
+[@@obsRecv]
+
+let eCoffeeMakerError
+    ?l:(x =
+        (true
+          : [%v: (notWaredUp * ready * noBeansError * noWaterError[@status])]))
+    =
+  (allA, ECoffeeMakerError (st == x), [||])
 
 (* event: completed brewing and pouring coffee *)
 val eCoffeeMakerCompleted : unit [@@obsRecv]
@@ -109,17 +118,36 @@ let eWarmUpCompleted =
 (* event: no water for coffee, refill water! *)
 val eNoWaterError : unit [@@obs]
 
-let eNoWaterError = (allA, ENoWaterError true, [| ECoffeeMakerError st |])
+let eNoWaterError =
+  ( allA,
+    ENoWaterError true,
+    [|
+      ECoffeeMakerError
+        (st
+        == ("NoWaterError"
+             : (notWaredUp * ready * noBeansError * noWaterError[@status])));
+    |] )
 
 (* event: no beans for coffee, refill beans! *)
 val eNoBeansError : unit [@@obs]
 
-let eNoBeansError = (allA, ENoBeansError true, [| ECoffeeMakerError (not st) |])
+let eNoBeansError =
+  ( allA,
+    ENoBeansError true,
+    [|
+      ECoffeeMakerError
+        (st
+        == ("NoBeansError"
+             : (notWaredUp * ready * noBeansError * noWaterError[@status])));
+    |] )
 
 (** Goal *)
 
 let[@goal] no_no_water_error =
   not
     (allA;
-     ECoffeeMakerError st;
+     ECoffeeMakerError
+       (st
+       == ("NoWaterError"
+            : (notWaredUp * ready * noBeansError * noWaterError[@status])));
      allA)
