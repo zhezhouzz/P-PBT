@@ -1,11 +1,11 @@
 val ( == ) : 'a -> 'a -> bool
 val readReq : unit [@@gen]
 val getReq : unit [@@obs]
-val readRsp : < va : int > [@@obs]
+val readRsp : < va : int > [@@obsRecv]
 val writeReq : < va : int > [@@gen]
 val putReq : < va : int > [@@obs]
 val putRsp : < va : int ; stat : bool > [@@obs]
-val writeRsp : < va : int ; stat : bool > [@@obs]
+val writeRsp : < va : int ; stat : bool > [@@obsRecv]
 val commit : unit [@@obs]
 val abort : unit [@@obs]
 

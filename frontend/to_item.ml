@@ -37,6 +37,7 @@ let ocaml_structure_item_to_item structure =
                  name = pval_name.txt;
                  nt = Nt.core_type_to_t pval_type;
                  generative = true;
+                 recvable = false;
                })
       | [ x ] when String.equal x.attr_name.txt "obs" ->
           Some
@@ -45,6 +46,16 @@ let ocaml_structure_item_to_item structure =
                  name = pval_name.txt;
                  nt = Nt.core_type_to_t pval_type;
                  generative = false;
+                 recvable = false;
+               })
+      | [ x ] when String.equal x.attr_name.txt "obsRecv" ->
+          Some
+            (MsgNtDecl
+               {
+                 name = pval_name.txt;
+                 nt = Nt.core_type_to_t pval_type;
+                 generative = false;
+                 recvable = true;
                })
       | _ -> _die [%here])
   | Pstr_value (_, [ value_binding ]) ->
@@ -78,8 +89,10 @@ let layout_syn_goal { qvs; prop } =
     (layout_symbolic_regex prop)
 
 let layout_item = function
-  | MsgNtDecl { generative; name; nt } ->
-      spf "%s %s: %s" (if generative then "gen" else "obs") name (Nt.layout nt)
+  | MsgNtDecl { generative; recvable; name; nt } ->
+      spf "%s %s: %s"
+        (if generative then "gen" else if recvable then "obsRecv" else "obs")
+        name (Nt.layout nt)
   | PrimDecl { name; nt } -> spf "val %s: %s" name (Nt.layout nt)
   | MsgDecl { name; haft } ->
       spf "rty %s:\n  %s" name (layout_haft layout_symbolic_regex haft)

@@ -16,6 +16,12 @@ let rec eval (runtime, term) =
   | CLetE { lhs; rhs = { x = CAssume (_, prop); _ }; body } ->
       let runtime = Runtime.mk_assume runtime (lhs, prop) in
       eval (runtime, body.x)
+  | CLetE { lhs; rhs = { x = CObs { op; prop }; _ }; body } ->
+      let runtime, cs = recv_and_send runtime op.x in
+      let store = store_add (lhs, cs) runtime.store in
+      let runtime = { runtime with store } in
+      if eval_prop runtime.store prop then eval (runtime, body.x)
+      else raise (RuntimeInconsistent runtime)
   | CLetE { lhs; rhs; body } ->
       (* let runtime, cs = *)
       (*   List.fold_right *)
@@ -29,7 +35,11 @@ let rec eval (runtime, term) =
       eval ({ runtime with store }, body.x)
   | CAppOp { op; args } ->
       (runtime, [ eval_app_op op (meval_value runtime.store args) ])
-  | CObs { op } -> recv_and_send runtime op.x
+  | CObs _ ->
+      _die_with [%here] "never"
+      (* let runtime, cs = recv_and_send runtime op.x in *)
+      (* if eval_prop runtime.store prop then (runtime, cs) *)
+      (* else raise (RuntimeInconsistent runtime) *)
   | CGen { op; args } ->
       let args = meval_value runtime.store args in
       let runtime = send runtime (op.x, args) in

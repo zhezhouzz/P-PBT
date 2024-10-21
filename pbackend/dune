@@ -1,0 +1,13 @@
+(library
+ (public_name haft.pbackend)
+ (name pbackend)
+ (wrapped true)
+ (modules
+   ast
+   astbuilder
+   fromTerm
+   pbackend
+   toplang
+ )
+ (preprocess (pps ppx_optcomp ppx_compare ppx_sexp_conv ppx_inline_test ppx_assert ppx_deriving.show ppx_deriving.eq ppx_deriving.ord ppx_here))
+ (libraries zutils language rawdesym))

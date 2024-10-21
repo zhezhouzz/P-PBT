@@ -45,7 +45,7 @@ type term =
       body : (Nt.nt, term) typed;
     }
   | CAppOp of { op : (Nt.nt, string) typed; args : (Nt.nt, value) typed list }
-  | CObs of { op : (Nt.nt, string) typed }
+  | CObs of { op : (Nt.nt, string) typed; prop : Nt.nt prop }
   | CGen of { op : (Nt.nt, string) typed; args : (Nt.nt, value) typed list }
   | CUnion of term list
   | CAssert of value
@@ -58,7 +58,12 @@ type syn_goal = { qvs : (Nt.nt, string) typed list; prop : srl }
 
 type 'r item =
   | PrimDecl of { name : string; nt : Nt.nt }
-  | MsgNtDecl of { generative : bool; name : string; nt : Nt.nt }
+  | MsgNtDecl of {
+      generative : bool;
+      name : string;
+      nt : Nt.nt;
+      recvable : bool;
+    }
   | MsgDecl of { name : string; haft : 'r haft }
   | SynGoal of syn_goal
 [@@deriving show, eq, ord]
@@ -80,6 +85,7 @@ type plan = plan_elem list
 type syn_env = {
   event_rtyctx : SFA.raw_regex haft ctx;
   gen_ctx : bool ctx;
+  recvable_ctx : bool ctx;
   event_tyctx : (Nt.nt, string) typed list ctx;
   tyctx : Nt.t ctx;
   goal : syn_goal option;
@@ -92,7 +98,7 @@ let term_to_nt = function
   | CVal v -> v.ty
   | CLetE { body; _ } -> body.ty
   | CAppOp { op; _ } -> snd @@ Nt.destruct_arr_tp op.ty
-  | CObs { op } -> snd @@ Nt.destruct_arr_tp op.ty
+  | CObs { op; _ } -> snd @@ Nt.destruct_arr_tp op.ty
   | CGen _ | CUnion _ | CAssert _ | CAssertP _ -> Ty_unit
   (* | CRandom nt -> nt *)
   | CAssume (nts, _) -> Nt.Ty_tuple nts
@@ -159,9 +165,9 @@ let mk_term_assume args prop e =
   | [] -> if is_true prop then e else _die_with [%here] "not true"
   | _ -> mk_let args (CAssume (List.map _get_ty args, prop)) e
 
-let mk_term_obs env op args e =
+let mk_term_obs env op args prop e =
   let ty = _get_force [%here] env.event_tyctx op in
-  mk_let args (CObs { op = op #: (Nt.Ty_record ty) }) e
+  mk_let args (CObs { op = op #: (Nt.Ty_record ty); prop }) e
 
 let rctx_to_prefix rctx =
   List.fold_right

@@ -8,6 +8,7 @@
   ntypecheck
   synthesis
   interpreter
+  pbackend
   )
  (modules
   caux

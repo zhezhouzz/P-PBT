@@ -6,6 +6,7 @@ let init_env =
     goal = None;
     event_tyctx = emp;
     gen_ctx = emp;
+    recvable_ctx = emp;
     tyctx = emp;
     event_rtyctx = emp;
   }
@@ -13,7 +14,7 @@ let init_env =
 let add_to_env (env : syn_env) = function
   | PrimDecl { name; nt } ->
       { env with tyctx = add_to_right env.tyctx name #: nt }
-  | MsgNtDecl { generative; name; nt } ->
+  | MsgNtDecl { generative; recvable; name; nt } ->
       let l =
         match nt with
         | Nt.Ty_record l -> l
@@ -22,7 +23,8 @@ let add_to_env (env : syn_env) = function
       in
       let event_tyctx = add_to_right env.event_tyctx name #: l in
       let gen_ctx = add_to_right env.gen_ctx name #: generative in
-      { env with event_tyctx; gen_ctx }
+      let recvable_ctx = add_to_right env.recvable_ctx name #: recvable in
+      { env with event_tyctx; gen_ctx; recvable_ctx }
   | MsgDecl _ -> env
   | SynGoal _ -> env
 

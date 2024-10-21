@@ -1082,7 +1082,8 @@ let instantiation env goal =
             @@ _safe_combine [%here] args' args
           in
           let p = smart_and (ps @ [ prop' ]) in
-          let e = mk_term_obs env op args' (mk_term_assertP p e) in
+          (* let e = mk_term_obs env op args' (mk_term_assertP p e) in *)
+          let e = mk_term_obs env op args' p e in
           e
     | _ :: _ -> _die [%here]
   in
