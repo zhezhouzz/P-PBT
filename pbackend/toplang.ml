@@ -123,6 +123,9 @@ let rec layout_p_expr ctx n = function
       spf "%s = %s"
         (layout_typed_p_expr ctx 0 lvalue)
         (layout_typed_p_expr ctx 0 rvalue)
+  | PSeq { rhs; body = { x = PConst PUnit; _ } } ->
+      let rhs = layout_typed_p_expr ctx n rhs in
+      rhs
   | PSeq { rhs; body = { x = PConst _; _ } as body } ->
       let rhs = layout_typed_p_expr ctx n rhs in
       spf "%s;\n%s" rhs
@@ -172,9 +175,15 @@ let rec layout_p_expr ctx n = function
         @@ layout_typed_p_expr ctx (n + 1) body)
         last
   | PRecieve { event_name; input; body } ->
+      let first =
+        match input.ty with
+        | Nt.Ty_unit -> spf "receive { case %s: {\n" event_name
+        | _ ->
+            spf "receive { case %s: (%s) {\n" event_name
+              (layout_pnt_typed_var input)
+      in
       let last = mk_indent n "}}" in
-      spf "receive { case %s: (%s) {\n%s%s" event_name
-        (layout_pnt_typed_var input)
+      spf "%s%s%s" first
         (mk_indent_semicolon_line (n + 1)
         @@ layout_typed_p_expr ctx (n + 1) body)
         last

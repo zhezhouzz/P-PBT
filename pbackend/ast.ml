@@ -131,6 +131,7 @@ type penv = {
   gen_ctx : bool ctx;
   recvable_ctx : bool ctx;
   event_tyctx : (Nt.nt, string) typed list StrMap.t;
-  component_table : (string * string) StrMap.t;
-  sampling_space : (Nt.nt, Nt.nt p_expr) typed NtMap.t;
+  (* component_table : (string * string) StrMap.t; *)
+  p_tyctx : Nt.nt StrMap.t;
+      (* sampling_space : (Nt.nt, Nt.nt p_expr) typed NtMap.t; *)
 }

@@ -66,9 +66,22 @@ let eval source_file output_file () =
   let () = Interpreter.interpret env term in
   ()
 
-let compile_to_p source_file output_file () =
+let compile_to_p source_file output_file pheader_file p_output_file () =
+  let p_tyctx =
+    ocaml_structure_to_p_tyctx
+      (Oparse.parse_imp_from_file ~sourcefile:pheader_file)
+  in
   let env, term = load_syn_result source_file output_file in
-  let res = Pbackend.compile_syn_result env term in
+  let content = Pbackend.compile_syn_result p_tyctx env term in
+  let oc = open_out p_output_file in
+  let () =
+    try
+      Printf.fprintf oc "%s\n" content;
+      close_out oc
+    with e ->
+      close_out oc;
+      raise e
+  in
   ()
 
 let show_term output_file () =
@@ -139,12 +152,26 @@ let two_param_string message f =
       let () = Myconfig.meta_config_path := config_file in
       f source_file file1)
 
+let four_param_string message f =
+  Command.basic ~summary:message
+    Command.Let_syntax.(
+      let%map_open config_file =
+        flag "config"
+          (optional_with_default Myconfig.default_meta_config_path regular_file)
+          ~doc:"config file path"
+      and file1 = anon ("file1" %: regular_file)
+      and file2 = anon ("file2" %: regular_file)
+      and file3 = anon ("file3" %: regular_file)
+      and file4 = anon ("file4" %: string) in
+      let () = Myconfig.meta_config_path := config_file in
+      f file1 file2 file3 file4)
+
 let cmds =
   [
     ("read-syn", one_param "read syn" read_syn);
     ("syn-one", two_param_string "syn one" syn_term);
     ("eval", two_param_string "eval" eval);
-    ("compile-to-p", two_param "compile to p language" compile_to_p);
+    ("compile-to-p", four_param_string "compile to p language" compile_to_p);
     ("show-term", one_param "show term" show_term);
     (* ("read-automata", one_param "read_automata" read_automata); *)
     (* ("read-sfa", one_param "read_sfa" read_sfa); *)

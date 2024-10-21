@@ -40,18 +40,18 @@ let eEspressoButtonPressed =
    false: NoBeansError
    true: NoWaterError
 *)
-val eCoffeeMakerError : < st : bool > [@@obs]
+val eCoffeeMakerError : < st : bool > [@@obsRecv]
 
 let eCoffeeMakerError ?l:(x = (true : [%v: bool])) =
   (allA, ECoffeeMakerError (iff st x), [||])
 
 (* event: completed brewing and pouring coffee *)
-val eCoffeeMakerCompleted : unit [@@obs]
+val eCoffeeMakerCompleted : unit [@@obsRecv]
 
 let eCoffeeMakerCompleted = (allA, ECoffeeMakerCompleted true, [||])
 
 (* event: coffee machine is ready *)
-val eCoffeeMakerReady : unit [@@obs]
+val eCoffeeMakerReady : unit [@@obsRecv]
 
 let eCoffeeMakerReady = (allA, ECoffeeMakerReady true, [||])
 

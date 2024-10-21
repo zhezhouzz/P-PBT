@@ -18,6 +18,12 @@ let rec parse_goal expr =
       (v :: vs, srl)
   | _ -> ([], symbolic_regex_of_expr expr)
 
+let ocaml_structure_item_to_p_event_decl structure =
+  match structure.pstr_desc with
+  | Pstr_primitive { pval_name; pval_type; _ } ->
+      (pval_name.txt, Nt.core_type_to_t pval_type)
+  | _ -> _die_with [%here] "wrong format"
+
 let ocaml_structure_item_to_item structure =
   let () =
     _log "parsing" @@ fun _ ->
@@ -82,6 +88,9 @@ let ocaml_structure_item_to_item structure =
 
 let ocaml_structure_to_items structure =
   List.filter_map ocaml_structure_item_to_item structure
+
+let ocaml_structure_to_p_tyctx structure =
+  StrMap.from_kv_list @@ List.map ocaml_structure_item_to_p_event_decl structure
 
 let layout_syn_goal { qvs; prop } =
   spf "%s.%s"
