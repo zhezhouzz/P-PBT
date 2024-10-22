@@ -44,14 +44,15 @@ let eEspressoButtonPressed =
 *)
 
 val eCoffeeMakerError :
-  < st : (notWaredUp * ready * noBeansError * noWaterError[@status]) >
+  < st : (notWaredUp * ready * noBeansError * noWaterError[@tCoffeeMakerState]) >
 [@@obsRecv]
 
 let eCoffeeMakerError
     ?l:(x =
         (true
-          : [%v: (notWaredUp * ready * noBeansError * noWaterError[@status])]))
-    =
+          : [%v:
+              (notWaredUp * ready * noBeansError * noWaterError
+              [@tCoffeeMakerState])])) =
   (allA, ECoffeeMakerError (st == x), [||])
 
 (* event: completed brewing and pouring coffee *)
@@ -125,7 +126,8 @@ let eNoWaterError =
       ECoffeeMakerError
         (st
         == ("NoWaterError"
-             : (notWaredUp * ready * noBeansError * noWaterError[@status])));
+             : (notWaredUp * ready * noBeansError * noWaterError
+               [@tCoffeeMakerState])));
     |] )
 
 (* event: no beans for coffee, refill beans! *)
@@ -138,7 +140,8 @@ let eNoBeansError =
       ECoffeeMakerError
         (st
         == ("NoBeansError"
-             : (notWaredUp * ready * noBeansError * noWaterError[@status])));
+             : (notWaredUp * ready * noBeansError * noWaterError
+               [@tCoffeeMakerState])));
     |] )
 
 (** Goal *)
@@ -149,5 +152,6 @@ let[@goal] no_no_water_error =
      ECoffeeMakerError
        (st
        == ("NoWaterError"
-            : (notWaredUp * ready * noBeansError * noWaterError[@status])));
+            : (notWaredUp * ready * noBeansError * noWaterError
+              [@tCoffeeMakerState])));
      allA)

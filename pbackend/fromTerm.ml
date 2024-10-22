@@ -7,6 +7,7 @@ let compile_const = function
   | U -> PUnit
   | B b -> PBool b
   | I i -> PInt i
+  | Enum { elem; _ } -> PEnum elem
   | SetLiteral _ -> _die [%here]
   | _ -> _die [%here]
 
@@ -220,6 +221,7 @@ let get_sampling_types env =
   let l =
     StrMap.fold (fun _ l res -> List.map _get_ty l @ res) env.event_tyctx []
   in
+  let l = List.filter (function Nt.Ty_enum _ -> false | _ -> true) l in
   let l = List.slow_rm_dup Nt.equal_nt l in
   List.sort Nt.compare_nt l
 

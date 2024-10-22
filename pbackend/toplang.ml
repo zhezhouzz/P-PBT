@@ -67,6 +67,7 @@ let layout_const = function
   | PRandomBool -> "$"
   | PUnit -> ""
   | PDefault nt -> spf "default(%s)" (layout_pnt nt)
+  | PEnum name -> name
 (* | _ -> _die_with [%here] "unimp" *)
 
 let mk_indent n str = spf "%s%s" (String.init (n * 2) (fun _ -> ' ')) str

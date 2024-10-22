@@ -11,6 +11,7 @@ type p_const =
   | PInt of int
   | PDefault of Nt.nt
   | PStr of string
+  | PEnum of string
   | PHalt
   | PError
   | PRandomBool

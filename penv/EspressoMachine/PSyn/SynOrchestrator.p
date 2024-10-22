@@ -3,11 +3,11 @@ machine SynOrchestrator {
     entry {
       // create a sane user
       var setting: machine;
-      var domain_bool: set[bool];
-      domain_bool += (true);
-      domain_bool += (false);
+      // var domain_bool: set[bool];
+      // domain_bool += (true);
+      // domain_bool += (false);
       setting = new CoffeeMakerControlPanel();
-      new SynClient((setting = setting, domain_bool = domain_bool));
+      new SynClient((setting = setting,));
     }
   }
 }

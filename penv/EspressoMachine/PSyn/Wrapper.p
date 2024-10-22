@@ -6,14 +6,8 @@ fun send_eEspressoButtonPressed (sf: machine, dest: machine) {
     send dest, eEspressoButtonPressed; 
 }
 
-fun cast_eCoffeeMakerError (input: tCoffeeMakerState) : (st: bool) {
-    var res: (st: bool);
-    if (input == NoBeansError) {
-        res.st = false;
-    } else if (input == NoWaterError) {
-        res.st = true;
-    } else {
-        assert(false);
-    }
+fun cast_eCoffeeMakerError (input: tCoffeeMakerState) : (st: tCoffeeMakerState) {
+    var res: (st: tCoffeeMakerState);
+    res.st = input;
     return res;
 }

@@ -4,10 +4,14 @@
  (wrapped true)
  (libraries syntax language rawdesym)
  (modules
-  synthesis
+  common
   gamma
   abduction
   feature
+  optimize
+  refine
+  mkTerm
+  synthesis
 )
 (preprocess (pps ppx_here))
 )

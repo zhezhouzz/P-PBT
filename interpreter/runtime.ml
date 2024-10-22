@@ -59,14 +59,20 @@ let reduce_sevent (op', cs) = function
       String.equal op op' && eval_prop (store_add (vs, cs) StrMap.empty) phi
 
 let sample runtime qv =
-  match SampleDomain.find_opt qv.ty runtime.sample_domain with
-  | None ->
-      let () =
-        Printf.printf "cannot find sample domain of type (%s)\n"
-          (Nt.layout qv.ty)
-      in
-      _die [%here]
-  | Some cs -> (qv.x, choose_from_list cs)
+  match qv.ty with
+  | Nt.Ty_enum { enum_elems; enum_name } ->
+      let elem = choose_from_list enum_elems in
+      let c = Enum { enum_elems; enum_name; elem } in
+      (qv.x, c)
+  | _ -> (
+      match SampleDomain.find_opt qv.ty runtime.sample_domain with
+      | None ->
+          let () =
+            Printf.printf "cannot find sample domain of type (%s)\n"
+              (Nt.layout qv.ty)
+          in
+          _die [%here]
+      | Some cs -> (qv.x, choose_from_list cs))
 
 let reduce_haft runtime cs (tau : SFA.raw_regex haft) =
   let rec aux (tau, cs) =
