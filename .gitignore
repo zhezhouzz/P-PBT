@@ -4,7 +4,6 @@ data/*
 *.png
 *.dump
 *.log
-*client.p
 *PCheckerOutput*
 *PGenerated*
 *.dot
