@@ -31,8 +31,11 @@ let default_sample_domain =
   @@ [
        (Nt.Ty_int, List.map (fun n -> I n) [ -1; 0; 1; 2 ]);
        (Nt.Ty_bool, List.map (fun n -> B n) [ true; false ]);
-       (Nt.Ty_constructor ("rid", []), List.map (fun n -> I n) [ 1; 2 ]);
-       (Nt.Ty_constructor ("aid", []), List.map (fun n -> I n) [ 3; 4 ]);
+       (mk_p_abstract_ty "rid", List.map (fun n -> I n) [ 1; 2; 3 ]);
+       (mk_p_abstract_ty "aid", List.map (fun n -> I n) [ 4; 5; 6 ]);
+       (mk_p_abstract_ty "tGid", List.map (fun n -> I n) [ 1; 2; 3 ]);
+       (mk_p_abstract_ty "tKey", List.map (fun n -> I n) [ 4; 5; 6 ]);
+       (mk_p_abstract_ty "tVal", List.map (fun n -> I n) [ 7; 8; 9 ]);
      ]
 
 let init_runtime (env : syn_env) sample_domain =
@@ -76,6 +79,11 @@ let sample runtime qv =
 
 let reduce_haft runtime cs (tau : SFA.raw_regex haft) =
   let rec aux (tau, cs) =
+    (* let () = *)
+    (*   Pp.printf "@{<bold>reduce_haft:@} cs(%s)\n%s\n" *)
+    (*     (List.split_by_comma layout_constant cs) *)
+    (*     (layout_haft SFA.layout_raw_regex tau) *)
+    (* in *)
     match (tau, cs) with
     | RtyHAParallel { history; parallel; _ }, [] ->
         if SFA.is_match reduce_sevent history runtime.trace then [ parallel ]
@@ -113,7 +121,7 @@ let sample_phi runtime (vs, prop) =
       if eval_prop store' prop then store (* List.map snd store *)
       else aux (n - 1)
   in
-  aux 100
+  aux 1000
 
 let mk_assume runtime (vs, prop) =
   let store = sample_phi runtime (vs, prop) in

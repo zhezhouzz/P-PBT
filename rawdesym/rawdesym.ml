@@ -1,4 +1,5 @@
 open Zutils
+open Myconfig
 open Zdatatype
 open AutomataLibrary
 open DesymFA
@@ -7,7 +8,7 @@ include Desymeval
 include Desymctx
 include Resym
 include Satcheck
-
+module IntBinary = IntBinary
 (* let counter = ref 0 *)
 
 let do_desym desym_ctx (gprop, r) =
@@ -93,6 +94,6 @@ let normalize_symbolic_rawregex tyctx event_tyctx (gprop, r) =
 
 let desymbolic_symbolic_rewregex tyctx event_tyctx (gprop, r) =
   let desym_ctx = mk_desym_ctx tyctx event_tyctx (gprop, r) in
-  let () = print_desym_ctx desym_ctx in
+  let () = _log "desym" @@ fun _ -> print_desym_ctx desym_ctx in
   let r' = do_desym desym_ctx (gprop, r) in
   (desym_ctx, r')

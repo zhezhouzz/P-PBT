@@ -16,14 +16,14 @@ let eStartTxnReq (id : tGid) =
 val eStartTxnRsp : < gid : tGid > [@@obsRecv]
 
 let eStartTxnRsp ?l:(id = (true : [%v: tGid])) =
-  (starA anyA, EStartTxnRsp (gid == id), [||])
+  (starA (anyA - EShardUpdateKeyReq (gid == id)), EStartTxnRsp (gid == id), [||])
 
 val eReadReq : < gid : tGid ; key : tKey > [@@gen]
 
 let eReadReq ?l:(id = (true : [%v: tGid])) ?l:(k = (true : [%v: tKey])) =
-  ( (starA anyA;
+  ( (starA (anyA - EStartTxnRsp (gid == id));
      EStartTxnRsp (gid == id);
-     starA anyA),
+     starA (anyA - EStartTxnRsp (gid == id))),
     EReadReq (gid == id && key == k),
     [| EShardReadKeyReq (gid == id && key == k) |] )
 
@@ -45,9 +45,9 @@ val eUpdateReq : < gid : tGid ; key : tKey ; value : tVal > [@@gen]
 
 let eUpdateReq ?l:(id = (true : [%v: tGid])) ?l:(k = (true : [%v: tKey]))
     ?l:(va = (true : [%v: tVal])) =
-  ( (starA anyA;
+  ( (starA (anyA - EStartTxnRsp (gid == id));
      EStartTxnRsp (gid == id);
-     starA anyA),
+     starA (anyA - EStartTxnRsp (gid == id))),
     EUpdateReq (gid == id && key == k && value == va),
     [| EShardUpdateKeyReq (gid == id && key == k && value == va) |] )
 
@@ -68,9 +68,9 @@ let eUpdateRsp ?l:(id = (true : [%v: tGid])) ?l:(k = (true : [%v: tKey]))
 val eCommitTxnReq : < gid : tGid > [@@gen]
 
 let eCommitTxnReq ?l:(id = (true : [%v: tGid])) =
-  ( (starA anyA;
+  ( (starA (anyA - EStartTxnRsp (gid == id));
      EStartTxnRsp (gid == id);
-     starA anyA),
+     starA (anyA - EStartTxnRsp (gid == id))),
     ECommitTxnReq (gid == id),
     [| EShardPrepareReq (gid == id) |] )
 
@@ -87,9 +87,9 @@ let eCommitTxnRsp ?l:(id = (true : [%v: tGid]))
 val eRollbackTxnReq : < gid : tGid > [@@gen]
 
 let eRollbackTxnReq ?l:(id = (true : [%v: tGid])) =
-  ( (starA anyA;
+  ( (starA (anyA - EStartTxnRsp (gid == id));
      EStartTxnRsp (gid == id);
-     starA anyA),
+     starA (anyA - EStartTxnRsp (gid == id))),
     ERollbackTxnReq (gid == id),
     [|
       EShardAbortTxn (gid == id);
@@ -116,43 +116,44 @@ val eShardReadKeyReq : < gid : tGid ; key : tKey > [@@obs]
 
 let eShardReadKeyReq =
   [|
+    (* (fun (va : tVal) ?l:(id = (true : [%v: tGid])) ?l:(k = (true : [%v: tKey])) -> *)
+    (*   ( (starA (anyA - EStartTxnRsp (gid == id)); *)
+    (*      EShardUpdateKeyReq ((not (gid == id)) && key == k && value == va); *)
+    (*      starA (anyA - EStartTxnRsp (gid == id)); *)
+    (*      EStartTxnRsp (gid == id); *)
+    (*      starA *)
+    (*        (anyA *)
+    (*        - EStartTxnRsp (gid == id) *)
+    (*        - EShardUpdateKeyReq (gid == id && key == k) *)
+    (*        - EShardAbortTxn (gid == id))), *)
+    (*     EShardReadKeyReq (gid == id && key == k), *)
+    (*     [| *)
+    (*       EShardReadKeyRsp *)
+    (*         (gid == id && key == k && value == va *)
+    (*         && status == ("OK" : (uNKNOWN * oK * aBORT[@tCmdStatus]))); *)
+    (*     |] )); *)
     (fun (va : tVal) ?l:(id = (true : [%v: tGid])) ?l:(k = (true : [%v: tKey])) ->
-      ( (starA anyA;
+      ( (starA (anyA - EStartTxnRsp (gid == id));
          EStartTxnRsp (gid == id);
-         starA (anyA - EShardAbortTxn (gid == id));
-         EShardUpdateKeyReq (key == k && value == va);
-         starA (anyA - EShardAbortTxn (gid == id))),
+         starA (anyA - EShardAbortTxn (gid == id) - EStartTxnRsp (gid == id));
+         EShardUpdateKeyReq (gid == id && key == k && value == va);
+         starA (anyA - EShardAbortTxn (gid == id) - EStartTxnRsp (gid == id))),
         EShardReadKeyReq (gid == id && key == k),
         [|
           EShardReadKeyRsp
             (gid == id && key == k && value == va
             && status == ("OK" : (uNKNOWN * oK * aBORT[@tCmdStatus])));
         |] ));
-    (fun (va : tVal) ?l:(id = (true : [%v: tGid])) ?l:(k = (true : [%v: tKey])) ->
-      ( (starA anyA;
-         EShardUpdateKeyReq ((not (gid == id)) && key == k && value == va);
-         starA anyA;
-         EStartTxnRsp (gid == id);
-         starA
-           (anyA
-           - EShardUpdateKeyReq (gid == id && key == k)
-           - EShardAbortTxn (gid == id))),
-        EShardReadKeyReq (gid == id && key == k),
-        [|
-          EShardReadKeyRsp
-            (gid == id && key == k && value == va
-            && status == ("OK" : (uNKNOWN * oK * aBORT[@tCmdStatus])));
-        |] ));
-    (fun ?l:(id = (true : [%v: tGid])) ?l:(k = (true : [%v: tKey])) ->
-      ( (starA anyA;
-         EShardAbortTxn (gid == id);
-         starA anyA),
-        EShardReadKeyReq (gid == id && key == k),
-        [|
-          EShardReadKeyRsp
-            (gid == id && key == k
-            && status == ("ABORT" : (uNKNOWN * oK * aBORT[@tCmdStatus])));
-        |] ));
+    (* (fun ?l:(id = (true : [%v: tGid])) ?l:(k = (true : [%v: tKey])) -> *)
+    (*   ( (starA anyA; *)
+    (*      EShardAbortTxn (gid == id); *)
+    (*      starA anyA), *)
+    (*     EShardReadKeyReq (gid == id && key == k), *)
+    (*     [| *)
+    (*       EShardReadKeyRsp *)
+    (*         (gid == id && key == k *)
+    (*         && status == ("ABORT" : (uNKNOWN * oK * aBORT[@tCmdStatus]))); *)
+    (*     |] )); *)
   |]
 
 val eShardReadKeyRsp :
@@ -175,26 +176,26 @@ let eShardUpdateKeyReq =
   [|
     (fun ?l:(id = (true : [%v: tGid])) ?l:(k = (true : [%v: tKey]))
          ?l:(va = (true : [%v: tVal])) ->
-      ( (starA anyA;
+      ( (starA (anyA - EStartTxnRsp (gid == id));
          EStartTxnRsp (gid == id);
-         starA (anyA - EShardAbortTxn (gid == id))),
+         starA (anyA - EShardAbortTxn (gid == id) - EStartTxnRsp (gid == id))),
         EShardUpdateKeyReq (gid == id && key == k && value == va),
         [|
           EShardUpdateKeyRsp
             (gid == id && key == k && value == va
             && status == ("OK" : (uNKNOWN * oK * aBORT[@tCmdStatus])));
         |] ));
-    (fun ?l:(id = (true : [%v: tGid])) ?l:(k = (true : [%v: tKey]))
-         ?l:(va = (true : [%v: tVal])) ->
-      ( (starA anyA;
-         EShardAbortTxn (gid == id);
-         starA anyA),
-        EShardUpdateKeyReq (gid == id && key == k && value == va),
-        [|
-          EShardUpdateKeyRsp
-            (gid == id && key == k && value == va
-            && status == ("ABORT" : (uNKNOWN * oK * aBORT[@tCmdStatus])));
-        |] ));
+    (* (fun ?l:(id = (true : [%v: tGid])) ?l:(k = (true : [%v: tKey])) *)
+    (*      ?l:(va = (true : [%v: tVal])) -> *)
+    (*   ( (starA anyA; *)
+    (*      EShardAbortTxn (gid == id); *)
+    (*      starA anyA), *)
+    (*     EShardUpdateKeyReq (gid == id && key == k && value == va), *)
+    (*     [| *)
+    (*       EShardUpdateKeyRsp *)
+    (*         (gid == id && key == k && value == va *)
+    (*         && status == ("ABORT" : (uNKNOWN * oK * aBORT[@tCmdStatus]))); *)
+    (*     |] )); *)
   |]
 
 val eShardUpdateKeyRsp :
@@ -226,9 +227,13 @@ val eShardPrepareReq : < gid : tGid > [@@obs]
 let eShardPrepareReq =
   [|
     (fun ?l:(id = (true : [%v: tGid])) ->
-      ( (starA (anyA - EShardPrepareReq (gid == id));
+      ( (starA (anyA - EShardPrepareReq (gid == id) - EStartTxnRsp (gid == id));
          EStartTxnRsp (gid == id);
-         starA (anyA - EShardAbortTxn (gid == id) - EShardPrepareReq (gid == id))),
+         starA
+           (anyA
+           - EShardAbortTxn (gid == id)
+           - EShardPrepareReq (gid == id)
+           - EStartTxnRsp (gid == id))),
         EShardPrepareReq (gid == id),
         [| EShardPrepareRsp (gid == id && bstatus) |] ));
     (fun ?l:(id = (true : [%v: tGid])) ->
@@ -272,6 +277,7 @@ let[@goal] readVisibity (id : tGid) (k : tKey) (v1 : tVal) (v2 : tVal) =
     (starA anyA;
      EUpdateRsp
        (gid == id && key == k && value == v1
+       && (not (value == v2))
        && status == ("OK" : (uNKNOWN * oK * aBORT[@tCmdStatus])));
      starA
        (anyA
@@ -280,6 +286,7 @@ let[@goal] readVisibity (id : tGid) (k : tKey) (v1 : tVal) (v2 : tVal) =
            && status == ("OK" : (uNKNOWN * oK * aBORT[@tCmdStatus]))));
      EReadRsp
        (gid == id && key == k && value == v2
+       && (not (value == v1))
        && status == ("OK" : (uNKNOWN * oK * aBORT[@tCmdStatus])));
      starA anyA)
 (* ; *)

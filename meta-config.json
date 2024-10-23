@@ -4,7 +4,7 @@
     ],
     "max_printing_size": 300,
     "log_tags": [
-        "plan",
+        // "plan",
         // "parsing",
         // "queries",
         // "model",

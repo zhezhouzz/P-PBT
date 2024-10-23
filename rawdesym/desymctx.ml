@@ -1,3 +1,4 @@
+open Myconfig
 open Sugar
 open Prop
 open Zdatatype
@@ -150,6 +151,7 @@ let mk_ftab if_add_lt (vars : (Nt.nt, string) typed list) (cs : constant list) =
   let cs = List.filter (function B _ -> false | _ -> true) cs in
   let lits = List.map (fun x -> AVar x) vars @ List.map (fun x -> AC x) cs in
   let () =
+    _log "desym" @@ fun _ ->
     Pp.printf "@{<bold>lits:@} %s\n" (List.split_by_comma layout_lit lits)
   in
   let additional =
@@ -158,6 +160,7 @@ let mk_ftab if_add_lt (vars : (Nt.nt, string) typed list) (cs : constant list) =
         List.filter (fun lit -> Nt.equal_nt Nt.Ty_int @@ lit_to_nt lit) lits
       in
       let () =
+        _log "desym" @@ fun _ ->
         Pp.printf "@{<bold>int lits:@} %s\n"
           (List.split_by_comma layout_lit int_lits)
       in
@@ -172,6 +175,7 @@ let mk_ftab if_add_lt (vars : (Nt.nt, string) typed list) (cs : constant list) =
           pairs
       in
       let () =
+        _log "desym" @@ fun _ ->
         Pp.printf "@{<bold>ltlits:@} %s\n"
           (List.split_by_comma layout_lit ltlits)
       in
@@ -191,6 +195,7 @@ let refine_global_ftab global_vars prop ftab =
       let p = smart_forall global_vars (smart_implies prop lit) in
       let res = Prover.check_valid p in
       let () =
+        _log "desym" @@ fun _ ->
         Pp.printf "@{<bold> check valid: @} %s :: %b\n" (layout_prop p) res
       in
       res
@@ -198,7 +203,10 @@ let refine_global_ftab global_vars prop ftab =
     let res =
       (not (aux (lit_to_prop lit))) && not (aux @@ Not (lit_to_prop lit))
     in
-    let () = Pp.printf "@{<bold>res: @} %s :: %b\n" (layout_lit lit) res in
+    let () =
+      _log "desym" @@ fun _ ->
+      Pp.printf "@{<bold>res: @} %s :: %b\n" (layout_lit lit) res
+    in
     res
   in
   List.filter check_valid_feature ftab
@@ -234,7 +242,6 @@ let layout_ftab ftab =
 (*   global_ftab *)
 
 let mk_global_ftab _ (_, prop, r) =
-  let () = Pp.printf "start mk_global_ftab \n" in
   let { global_lits; _ } = gather_regex @@ raw_regex_to_regex r in
   let prop_lits = get_lits prop in
   (* let if_add_lt = *)
@@ -246,8 +253,10 @@ let mk_global_ftab _ (_, prop, r) =
   in
   (* let () = Pp.printf "@{<bold>ftab:@} %s\n" (layout_ftab global_ftab) in *)
   (* let global_ftab = refine_global_ftab global_vars prop global_ftab in *)
-  let () = Pp.printf "@{<bold>ftab:@} %s\n" (layout_ftab global_ftab) in
-  let () = Pp.printf "end mk_global_ftab \n" in
+  let () =
+    _log "desym" @@ fun _ ->
+    Pp.printf "@{<bold>global_ftab:@} %s\n" (layout_ftab global_ftab)
+  in
   global_ftab
 
 let mk_desym_ctx tyctx event_tyctx (gprop, r) =
@@ -284,7 +293,7 @@ let mk_desym_ctx tyctx event_tyctx (gprop, r) =
   in
   let desym_map = mk_desym_map (global_ftab, local_ftab) in
   let res = { global_vars; event_tyctx; global_ftab; local_ftab; desym_map } in
-  let () = print_desym_ctx res in
+  let () = _log "desym" @@ fun _ -> print_desym_ctx res in
   res
 
 (* type desym_fact = { *)

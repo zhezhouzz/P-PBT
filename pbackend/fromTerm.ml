@@ -75,15 +75,24 @@ let mk_p_assert term =
 let mk_p_while body = (PWhile { body }) #: Nt.Ty_int
 
 let mk_sample_space_decl nt =
-  let actual_type = match nt with Nt.Ty_bool -> Nt.Ty_bool | _ -> Nt.Ty_int in
+  let actual_type =
+    match nt with
+    | Nt.Ty_bool -> Nt.Ty_bool
+    | Nt.Ty_enum { enum_name; _ } -> mk_p_abstract_ty enum_name
+    | _ -> Nt.Ty_int
+  in
   let name = spf "domain_%s" (Nt.layout nt) in
   let decl = name #: (mk_p_set_ty actual_type) in
   decl
 
 let handle_assume vars prop =
   let f var =
-    let domain = mk_pid (mk_sample_space_decl var.ty) in
-    mk_p_assign (mk_pid var, mk_p_choose domain)
+    match var.ty with
+    (* | Nt.Ty_enum { enum_name; _ } -> *)
+    (*     mk_p_assign (mk_pid var, mk_p_default (mk_p_abstract_ty enum_name)) *)
+    | _ ->
+        let domain = mk_pid (mk_sample_space_decl var.ty) in
+        mk_p_assign (mk_pid var, mk_p_choose domain)
   in
   let cond = compile_prop prop in
   let body = mk_p_seqs_ (List.map f vars @ [ mk_p_it cond mk_p_break ]) in
@@ -221,7 +230,7 @@ let get_sampling_types env =
   let l =
     StrMap.fold (fun _ l res -> List.map _get_ty l @ res) env.event_tyctx []
   in
-  let l = List.filter (function Nt.Ty_enum _ -> false | _ -> true) l in
+  (* let l = List.filter (function Nt.Ty_enum _ -> false | _ -> true) l in *)
   let l = List.slow_rm_dup Nt.equal_nt l in
   List.sort Nt.compare_nt l
 

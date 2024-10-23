@@ -179,6 +179,16 @@ let rec layout_p_expr ctx n = function
       let first =
         match input.ty with
         | Nt.Ty_unit -> spf "receive { case %s: {\n" event_name
+        | Nt.Ty_record _ ->
+            let ptype =
+              match List.of_seq @@ String.to_seq event_name with
+              | _ :: cs ->
+                  mk_p_abstract_ty (String.of_seq @@ List.to_seq ('t' :: cs))
+              | _ -> _die [%here]
+            in
+            let input = input.x #: ptype in
+            spf "receive { case %s: (%s) {\n" event_name
+              (layout_pnt_typed_var input)
         | _ ->
             spf "receive { case %s: (%s) {\n" event_name
               (layout_pnt_typed_var input)

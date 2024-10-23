@@ -2,6 +2,7 @@ open Sugar
 open Prop
 open Zdatatype
 open Common
+open Myconfig
 
 let blist_to_prop (bl : bool list) int2lit =
   let blT, blF =
@@ -60,6 +61,7 @@ let init_fact_tree checker ftab =
     spf "%i/%i = %f" a b (float_of_int a /. float_of_int b)
   in
   let () =
+    _log "desym" @@ fun _ ->
     Pp.printf "@{<bold>Stat init_fact_tree@}: %s\n"
       (layout_ratio (List.length res) (pow 2 (List.length ftab)))
   in

@@ -16,8 +16,8 @@ let layout_elem_aux f = function
 
 let layout_elem =
   layout_elem_aux (function
-    | PlanStarInv cs -> SFA.layout_raw_regex (Star (MultiChar cs))
-    | PlanStar r -> SFA.layout_raw_regex (Star r)
+    | PlanStarInv cs -> SFA.omit_layout_raw_regex (Star (MultiChar cs))
+    | PlanStar r -> SFA.omit_layout_raw_regex (Star r)
     | _ -> _die [%here])
 
 let omit_layout_elem =
@@ -100,6 +100,7 @@ let plan_to_raw_regex ctx plan =
 
 let smart_and_se se1 elem =
   let () =
+    _log "plan" @@ fun _ ->
     Pp.printf "@{<bold>smart_and_se:@} %s --> %s\n" (layout_cur se1)
       (layout_elem elem)
   in
@@ -113,16 +114,19 @@ let smart_and_se se1 elem =
       else None
   | PlanAct { op = op2; args } ->
       if String.equal op1 op2 then
-        let () = Pp.printf "op: %s\n" op1 in
-        let () = Pp.printf "vs1: %s\n" (layout_qvs vs1) in
-        let () = Pp.printf "args: %s\n" (layout_qvs args) in
         let phi_1' =
           List.fold_right
             (fun (x, y) -> subst_prop_instance x.x (AVar y))
             (_safe_combine [%here] vs1 args)
             phi_1
         in
-        let () = Pp.printf "phi_1': %s\n" (layout_prop phi_1') in
+        let () =
+          _log "plan" @@ fun _ ->
+          Pp.printf "op: %s\n" op1;
+          Pp.printf "vs1: %s\n" (layout_qvs vs1);
+          Pp.printf "args: %s\n" (layout_qvs args);
+          Pp.printf "phi_1': %s\n" (layout_prop phi_1')
+        in
         Some (PlanActBuffer { op = op2; args; phi = phi_1' })
       else None
   | PlanActBuffer { op = op2; args; phi = phi_2 } ->
@@ -143,6 +147,7 @@ let smart_and_se_in_cs cs cur =
 
 let single_insert elem trace =
   let () =
+    _log "plan" @@ fun _ ->
     Printf.printf "insert (%s) in %s\n" (omit_layout_elem elem)
       (omit_layout trace)
   in
@@ -214,10 +219,8 @@ let comple_cs cs cs' =
               if String.equal op op' then phi' :: phis else phis)
             cs' []
         in
-        let phi = smart_add_to phi (Not (smart_or phis)) in
-        match phi with
-        | Not p when is_true p -> None
-        | _ -> Some { op; vs; phi })
+        let phi = smart_add_to phi (smart_not (smart_or phis)) in
+        Some { op; vs; phi })
       cs
   in
   cs

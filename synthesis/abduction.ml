@@ -2,6 +2,7 @@
 include Language
 open Gamma
 open Zdatatype
+open Optimize
 
 let eliminate_buffer_elem ({ bvs; bprop }, elem) =
   match elem with
@@ -68,7 +69,8 @@ let do_abduction { bvs; bprop } (checker : gamma -> bool) (abd_vars, fvs) =
   in
   fvs
 
-let mk_abd_prop fvs = match fvs with [] -> None | _ -> Some (smart_or fvs)
+let mk_abd_prop fvs =
+  match fvs with [] -> None | _ -> Some (simp_fvec_prop @@ smart_or fvs)
 
 let mybuild_euf vars =
   let space = Hashtbl.create 10 in

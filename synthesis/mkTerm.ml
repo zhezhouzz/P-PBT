@@ -24,7 +24,7 @@ let quantifier_elimination (qvs, gprop, qv, local_qvs, prop) =
       @@ smart_exists local_qvs @@ smart_exists qvs
       @@ smart_implies (smart_add_to abd gprop) prop
     in
-    let () = Printf.printf "check: %s\n" @@ layout_prop p in
+    let () = Printf.printf "check: %s\n" @@ layout_propRaw p in
     Prover.check_valid p
   in
   if check_valid mk_true then Some mk_true
@@ -89,8 +89,9 @@ let instantiation_var env (gamma : Gamma.gamma) vs Gamma.{ bvs; bprop } =
       @@ smart_exists bvs
       @@ smart_implies (smart_add_to abd gamma.bprop) bprop
     in
-    let () = Printf.printf "check: %s\n" @@ layout_prop p in
-    Prover.check_valid p
+    let res = Prover.check_valid p in
+    let () = Printf.printf "check(%b): %s\n" res @@ layout_prop p in
+    res
   in
   let fvs = List.init (List.length fvtab) (fun _ -> [ true; false ]) in
   let fvs = List.choose_list_list fvs in
@@ -129,10 +130,7 @@ let instantiation env goal =
     (args', qvs')
   in
   let rec handle gamma (gamma', plan) =
-    let () =
-      Printf.printf "Gamma: %s\n" (Gamma.layout gamma);
-      layout_syn_plan_judgement goal
-    in
+    let () = simp_print_instantiation gamma (gamma', plan) in
     match plan with
     | [] -> if 0 == List.length gamma'.bvs then mk_term_tt else _die [%here]
     | PlanAct { op; args } :: plan ->

@@ -21,7 +21,7 @@ val eWithDrawResp :
 [@@obs]
 
 let eWithDrawResp ?l:(id = (true : [%v: rid])) ?l:(ac = (true : [%v: aid]))
-    ?l:(ba = (v > 0 : [%v: int])) ?l:(st = (true : [%v: bool])) =
+    ?l:(ba = (true : [%v: int])) ?l:(st = (true : [%v: bool])) =
   ( allA,
     EWithDrawResp
       (rId == id && accountId == ac && balance == ba && iff status st),
