@@ -197,6 +197,12 @@ let right_most_se plan =
   (* let () = if !counter >= 2 then _die [%here] in *)
   Some (List.rev post, cur, List.rev pre)
 
+let synthesis_counter = ref 0
+
+let incrAndStop n =
+  if !synthesis_counter >= n then _die [%here]
+  else synthesis_counter := !synthesis_counter + 1
+
 let rec deductive_synthesis_reg env goal : plan sgoal option =
   let goals = normalize_goal env goal in
   let res = List.filter_map (deductive_synthesis_trace env) goals in
@@ -347,7 +353,8 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
   let () = simp_print_back_judgement goal in
   let gamma, (pre, elem, post) = goal in
   let op = Plan.elem_to_op [%here] elem in
-  (* let () = if String.equal op "commit" then _die [%here] in *)
+  let () = incrAndStop 5 in
+  (* let () = if String.equal op "eNotifyNodesDown" then _die [%here] in *)
   if is_gen env op then
     (* let () = if String.equal op "writeReq" then _die [%here] in *)
     Some (gamma, pre @ [ elem ] @ post)
@@ -478,6 +485,7 @@ and backward env (goal : (plan * plan_elem * plan) sgoal) : plan sgoal option =
         Pp.printf "@{<bold>After Abduction@}:\n";
         simp_print_goal_judgement (gamma', mid_plan)
       in
+      (* let () = if String.equal op "ePong" then _die [%here] in *)
       backward env (gamma', mid_plan)
     in
     let goals =

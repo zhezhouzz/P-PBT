@@ -1,0 +1,10 @@
+<!-- P Project file for the Simplified 2PC example -->
+<Project>
+<ProjectName>Simplified2PC</ProjectName>
+<InputFiles>
+	<PFile>./PSrc/</PFile>
+	<PFile>./PSpec/</PFile>
+	<PFile>./PSyn/</PFile>
+</InputFiles>
+<OutputDir>./PGenerated/</OutputDir>
+</Project>

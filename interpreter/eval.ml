@@ -6,9 +6,13 @@ let counter = ref 0
 
 let rec eval (runtime, term) =
   let () = counter := !counter + 1 in
-  let () = Pp.printf "@{<bold>Eval(%i):@}\n" !counter in
-  let () = Pp.printf "@{<blue>Runtime:@}\n%s\n" (layout_runtime runtime) in
-  let () = Pp.printf "@{<orange>Term:@}\n%s\n" (layout_term term) in
+  let () =
+    _log "eval" @@ fun _ ->
+    let () = Pp.printf "@{<bold>Eval(%i):@}\n" !counter in
+    let () = Pp.printf "@{<blue>Runtime:@}\n%s\n" (layout_runtime runtime) in
+    let () = Pp.printf "@{<orange>Term:@}\n%s\n" (layout_term term) in
+    ()
+  in
   match term with
   | CVal v ->
       let c = eval_value runtime.store v.x in
@@ -70,3 +74,16 @@ let eval_until_consistent (runtime, term) =
   let i, res = aux 0 in
   let () = Pp.printf "@{<red>Repeat for %i times@}\n" i in
   res
+
+let eval_sample (runtime, term) total =
+  let rec aux (successed : int) (used : int) =
+    if used >= total then successed
+    else
+      try
+        let _ = eval (runtime, term) in
+        aux (successed + 1) (used + 1)
+      with
+      | RuntimeInconsistent _ -> aux successed (used + 1)
+      | e -> raise e
+  in
+  aux 0 0

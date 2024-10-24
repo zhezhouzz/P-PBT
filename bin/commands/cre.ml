@@ -64,6 +64,7 @@ let load_syn_result source_file output_file =
 let eval source_file output_file () =
   let env, term = load_syn_result source_file output_file in
   let () = Interpreter.interpret env term in
+  let () = Interpreter.interpret_sample env term 1000 in
   ()
 
 let compile_to_p source_file output_file pheader_file p_output_file () =

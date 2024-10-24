@@ -4,6 +4,7 @@
     ],
     "max_printing_size": 300,
     "log_tags": [
+        "ntypecheck",
         // "plan",
         // "parsing",
         // "queries",

@@ -55,37 +55,46 @@ let simp_print_instantiation gamma (gamma', plan) =
   simp_print_gamma_judgement gamma';
   Pp.printf "%s\n" @@ Plan.omit_layout plan
 
+let choose_one l =
+  List.init (List.length l) (fun i ->
+      let x = List.nth l i in
+      let rest = List.filteri (fun j _ -> i != j) l in
+      (x, rest))
+
 let rec filter_rule_by_future op = function
-  | RtyHAParallel { parallel; adding_se; history } -> (
+  | RtyHAParallel { parallel; adding_se; history } ->
       (* HACK: assume each op only has one sevent. *)
       let ses, parallel' =
         List.partition
           (fun se -> String.equal op (_get_sevent_name se))
           parallel
       in
-      match ses with
-      | [] -> None
-      | [ se ] ->
-          (* let () = *)
-          (*   Printf.printf "parallel %s --> %s\n" *)
-          (*     (List.split_by_comma layout_se parallel) *)
-          (*     (List.split_by_comma layout_se parallel') *)
-          (* in *)
-          Some (se, RtyHAParallel { parallel = parallel'; adding_se; history })
-      | _ -> _die_with [%here] "assume each op only has one sevent")
+      List.map (fun (se, rest) ->
+          (se, RtyHAParallel { parallel = rest @ parallel'; adding_se; history }))
+      @@ choose_one ses
+      (* match ses with *)
+      (* | [] -> [] *)
+      (* | [ se ] -> *)
+      (*     (\* let () = *\) *)
+      (*     (\*   Printf.printf "parallel %s --> %s\n" *\) *)
+      (*     (\*     (List.split_by_comma layout_se parallel) *\) *)
+      (*     (\*     (List.split_by_comma layout_se parallel') *\) *)
+      (*     (\* in *\) *)
+      (*     [ (se, RtyHAParallel { parallel = parallel'; adding_se; history }) ] *)
+      (* | _ -> _die_with [%here] "assume each op only has one sevent") *)
   | RtyArr { arg; argcty; retrty } ->
-      let* se, retrty = filter_rule_by_future op retrty in
-      Some (se, RtyArr { arg; argcty; retrty })
+      let l = filter_rule_by_future op retrty in
+      List.map (fun (se, retrty) -> (se, RtyArr { arg; argcty; retrty })) l
   | RtyGArr { arg; argnt; retrty } ->
-      let* se, retrty = filter_rule_by_future op retrty in
-      Some (se, RtyGArr { arg; argnt; retrty })
+      let l = filter_rule_by_future op retrty in
+      List.map (fun (se, retrty) -> (se, RtyGArr { arg; argnt; retrty })) l
   | _ -> _die [%here]
 
 let select_rule_by_future env op =
   List.concat_map
     (fun x ->
       let l = haft_to_triple x.ty in
-      let l = List.filter_map (filter_rule_by_future op) l in
+      let l = List.concat_map (filter_rule_by_future op) l in
       l)
     (List.map (fun x -> x.x #: (fresh_haft x.ty))
     @@ ctx_to_list env.event_rtyctx)

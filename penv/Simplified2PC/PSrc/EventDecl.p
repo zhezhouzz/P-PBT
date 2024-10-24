@@ -1,0 +1,11 @@
+event readReq: (src: machine);
+event getReq: (src: machine);
+type teadRsp = (va: int);
+event readRsp: teadRsp;
+event writeReq : (src: machine, va: int);
+event putReq : (src: machine, va: int);
+event putRsp : (va: int, stat: bool);
+type triteRsp = (va: int, stat: bool);
+event writeRsp : triteRsp;
+event commit;
+event abort;
